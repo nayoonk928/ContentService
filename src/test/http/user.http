@@ -1,0 +1,10 @@
+### 회원 가입
+POST http://localhost:8080/user/signup
+Content-Type: application/json
+
+{
+  "userId": "newUser23",
+  "email": "newEmail@example.com",
+  "nickname": "name",
+  "password": "test23!!"
+}
