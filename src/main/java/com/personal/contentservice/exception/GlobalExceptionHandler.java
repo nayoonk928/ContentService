@@ -3,6 +3,7 @@ package com.personal.contentservice.exception;
 import static com.personal.contentservice.exception.ErrorCode.INVALID_REQUEST;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
@@ -31,6 +32,13 @@ public class GlobalExceptionHandler {
     }
 
     log.error("MethodArgumentNotValidException is occurred.", e);
+    return ResponseEntity.badRequest().body(
+        new ErrorResponse(INVALID_REQUEST, INVALID_REQUEST.getDescription()));
+  }
+
+  @ExceptionHandler(DataIntegrityViolationException.class)
+  public ResponseEntity<?> handleDataIntegrityViolationException(DataIntegrityViolationException e) {
+    log.error("DataIntegrityViolationException is occurred.", e);
     return ResponseEntity.badRequest().body(
         new ErrorResponse(INVALID_REQUEST, INVALID_REQUEST.getDescription()));
   }

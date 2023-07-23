@@ -20,9 +20,6 @@ import lombok.NoArgsConstructor;
 public class User extends BaseEntity {
 
   @Column(nullable = false, unique = true)
-  private String userId;
-
-  @Column(nullable = false, unique = true)
   private String email;
 
   @Column(nullable = false, unique = true)
