@@ -36,6 +36,9 @@ dependencies {
     implementation 'com.squareup.okhttp3:okhttp:4.10.0'
     implementation 'com.google.code.gson:gson:2.8.8'
 
+    // redisson 이라는 redis 를 이용한 분산락을 지원하는 클라이언트
+    implementation 'org.redisson:redisson:3.23.1'
+
     compileOnly 'org.projectlombok:lombok'
 
     runtimeOnly 'com.h2database:h2'
