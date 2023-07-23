@@ -1,6 +1,8 @@
 package com.personal.contentservice.controller;
 
+import com.personal.contentservice.aop.UserLock;
 import com.personal.contentservice.dto.SignUpDto;
+import com.personal.contentservice.dto.SignUpDto.Response;
 import com.personal.contentservice.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,10 +20,11 @@ public class UserController {
   private final UserService userService;
 
   @PostMapping("/signup")
-  public ResponseEntity<?> userSignUp(
-      @Valid @RequestBody SignUpDto signUpDto
+  @UserLock
+  public ResponseEntity<ResponseEntity<Response>> userSignUp(
+      @Valid @RequestBody SignUpDto.Request request
   ) {
-    return ResponseEntity.ok().body(userService.signUp(signUpDto));
+    return ResponseEntity.ok().body(userService.signUp(request));
   }
 
 }

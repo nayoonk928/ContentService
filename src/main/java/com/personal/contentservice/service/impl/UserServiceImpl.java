@@ -2,8 +2,6 @@ package com.personal.contentservice.service.impl;
 
 import static com.personal.contentservice.exception.ErrorCode.ALREADY_EXISTS_EMAIL;
 import static com.personal.contentservice.exception.ErrorCode.ALREADY_EXISTS_NICKNAME;
-import static com.personal.contentservice.exception.ErrorCode.ALREADY_EXISTS_USER_ID;
-import static com.personal.contentservice.util.PasswordUtils.getEncryptPassword;
 
 import com.personal.contentservice.domain.User;
 import com.personal.contentservice.dto.SignUpDto;
@@ -12,6 +10,7 @@ import com.personal.contentservice.repository.UserRepository;
 import com.personal.contentservice.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,36 +19,35 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserServiceImpl implements UserService {
 
   private final UserRepository userRepository;
+  private final BCryptPasswordEncoder bCryptPasswordEncoder;
 
   // 회원 가입
   @Override
   @Transactional
-  public ResponseEntity<?> signUp(SignUpDto signUpDto) {
+  public ResponseEntity<SignUpDto.Response> signUp(SignUpDto.Request request) {
+    String email = request.getEmail();
+    String nickname = request.getNickname();
 
-    if (userRepository.existsByUserId(signUpDto.getUserId())) {
-      throw new CustomException(ALREADY_EXISTS_USER_ID);
-    }
-
-    if (userRepository.existsByEmail(signUpDto.getEmail())) {
+    if (userRepository.existsByEmail(email)) {
       throw new CustomException(ALREADY_EXISTS_EMAIL);
     }
 
-    if (userRepository.existsByNickname(signUpDto.getNickname())) {
+    if (userRepository.existsByNickname(nickname)) {
       throw new CustomException(ALREADY_EXISTS_NICKNAME);
     }
 
-    String encryptPassword = getEncryptPassword(signUpDto.getPassword());
+    String encryptPassword = bCryptPasswordEncoder.encode(request.getPassword());
 
     User user = User.builder()
-        .userId(signUpDto.getUserId())
-        .email(signUpDto.getEmail())
-        .nickname(signUpDto.getNickname())
+        .email(email)
+        .nickname(nickname)
         .password(encryptPassword)
-        .userType(signUpDto.getUserType())
+        .userType(request.getUserType())
         .build();
 
     userRepository.save(user);
-    return ResponseEntity.ok().body(user);
+
+    return ResponseEntity.ok().body(SignUpDto.Response.from(user));
   }
 
 }
