@@ -39,6 +39,9 @@ dependencies {
     // redisson 이라는 redis 를 이용한 분산락을 지원하는 클라이언트
     implementation 'org.redisson:redisson:3.23.1'
 
+    // Jwt
+    implementation 'com.auth0:java-jwt:4.2.0'
+
     compileOnly 'org.projectlombok:lombok'
 
     runtimeOnly 'com.h2database:h2'
