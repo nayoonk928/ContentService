@@ -22,14 +22,22 @@ public class LockAopAspect {
       UserLockInterface request
   ) throws Throwable {
     // lock 취득 시도
-    lockService.lock(request.getEmail());
-    lockService.lock(request.getNickname());
+    if (request.getEmail() != null) {
+      lockService.lock(request.getEmail());
+    }
+    if (request.getNickname() != null) {
+      lockService.lock(request.getNickname());
+    }
     try {
       return pjp.proceed();
     } finally {
       // lock 해제
-      lockService.unlock(request.getEmail());
-      lockService.unlock(request.getNickname());
+      if (request.getEmail() != null) {
+        lockService.unlock(request.getEmail());
+      }
+      if (request.getNickname() != null) {
+        lockService.unlock(request.getNickname());
+      }
     }
   }
 

@@ -14,7 +14,11 @@ public enum ErrorCode {
   INVALID_REQUEST("잘못된 요청입니다.", BAD_REQUEST),
   ALREADY_EXISTS_EMAIL("이미 가입된 이메일입니다.", BAD_REQUEST),
   ALREADY_EXISTS_NICKNAME("이미 존재하는 닉네임입니다.", BAD_REQUEST),
-  USER_TRANSACTION_LOCK("이메일/닉네임이 이미 사용 중입니다.", BAD_REQUEST)
+  USER_TRANSACTION_LOCK("이메일/닉네임이 이미 사용 중입니다.", BAD_REQUEST),
+  INCORRECT_EMAIL_OR_PASSWORD("이메일 또는 비밀번호가 일치하지 않습니다.", BAD_REQUEST),
+  USER_NOT_FOUND("사용자를 찾을 수 없습니다.", BAD_REQUEST),
+  UNAUTHORIZED("인증되지 않은 사용자입니다.", BAD_REQUEST),
+  SAME_CURRENT_PASSWORD("현재 비밀번호와 다른 비밀번호로 변경해주세요.", BAD_REQUEST)
   ;
 
   private final String description;
