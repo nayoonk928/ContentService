@@ -31,9 +31,5 @@ spring:
         testIndexName: tests
 
 jwt:
-  secret: skaskdnw123!@#
+  secret:
 
-admin:
-  email: admin@example.com
-  password: adminpassword123!!
-  nickname: admin
