@@ -87,14 +87,8 @@ public class UserServiceImpl implements UserService {
   @Override
   @Transactional
   public void deleteUser(Authentication authentication) {
-    if (authentication != null && authentication.isAuthenticated()) {
-      PrincipalDetails principalDetails = (PrincipalDetails) authentication.getPrincipal();
-
-      User user = principalDetails.getUser();
-      userRepository.delete(user);
-    } else {
-      throw new CustomException(USER_NOT_FOUND);
-    }
+    User user = getUser(authentication);
+    userRepository.delete(user);
   }
 
   // 회원 정보 수정
@@ -102,8 +96,7 @@ public class UserServiceImpl implements UserService {
   public UserUpdateDto.Response updateUserInfo(
       Authentication authentication, UserUpdateDto.Request request
   ) {
-    User user = userRepository.findByEmail(authentication.getName())
-        .orElseThrow(() -> new CustomException(USER_NOT_FOUND));
+    User user = getUser(authentication);
 
     // 이메일 변경
     String newEmail = request.getEmail();
@@ -134,6 +127,15 @@ public class UserServiceImpl implements UserService {
 
     userRepository.save(user);
     return UserUpdateDto.Response.from(user);
+  }
+
+  private User getUser(Authentication authentication) {
+    PrincipalDetails principalDetails = (PrincipalDetails) authentication.getPrincipal();
+    User user = principalDetails.getUser();
+    if (user == null) {
+      throw new CustomException(USER_NOT_FOUND);
+    }
+    return user;
   }
 
 }

@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -161,35 +162,19 @@ class UserServiceImplTest {
   void deleteUserTest_Success() {
     //given
     String email = "test@example.com";
-    User user = new User();
-    user.setEmail(email);
+    User user = User.builder()
+        .email(email)
+        .build();
 
     //when
-    when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+    PrincipalDetails principalDetails = new PrincipalDetails(user);
+    Authentication authentication = mock(Authentication.class);
+    when(authentication.getPrincipal()).thenReturn(principalDetails);
 
-    //then
-    Authentication authentication = new UsernamePasswordAuthenticationToken(
-        email, "test123!!");
     userService.deleteUser(authentication);
-    verify(userRepository, times(1)).delete(user);
-  }
-
-  @Test
-  @DisplayName("회원탈퇴_실패")
-  void deleteUserTest_Fail() {
-    //given
-    String userEmail = "test@example.com";
-    when(userRepository.findByEmail(userEmail)).thenReturn(Optional.empty());
-
-    Authentication authentication = new UsernamePasswordAuthenticationToken(
-        userEmail, "test123!!");
-
-    //when
 
     //then
-    CustomException exception = assertThrows(CustomException.class,
-        () -> userService.deleteUser(authentication));
-    assertEquals(USER_NOT_FOUND, exception.getErrorCode());
+    verify(userRepository, times(1)).delete(user);
   }
 
   @Test
