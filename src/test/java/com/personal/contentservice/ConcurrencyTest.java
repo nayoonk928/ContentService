@@ -35,24 +35,6 @@ class ConcurrencyTest {
   @Autowired
   private UserServiceImpl userService;
 
-  @Autowired
-  private JwtService jwtService;
-
-  @Autowired
-  private BCryptPasswordEncoder bCryptPasswordEncoder;
-
-  @BeforeEach
-  void setup() {
-    for (long i = 0; i < 10; i++) {
-      User user = new User();
-      user.setEmail("test" + i + "@example.com");
-      user.setNickname("name" + i);
-      user.setPassword("test123!!");
-      user.setUserType(USER);
-      userRepository.save(user);
-    }
-  }
-
   @Test
   @DisplayName("동시성 테스트: 동일한 닉네임으로 동시에 가입 시 하나만 저장되는지 확인")
   void testUniqueNicknameRegistration() throws InterruptedException {
