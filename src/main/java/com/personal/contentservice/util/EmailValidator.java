@@ -12,6 +12,10 @@ public class EmailValidator implements ConstraintValidator<EmailValidation, Stri
 
   @Override
   public boolean isValid(String email, ConstraintValidatorContext context) {
+    // email 이 null 인 경우 유효성 검사를 통과시킴
+    if (email == null) {
+      return true;
+    }
     return email.matches(EMAIL_REGEX);
   }
 

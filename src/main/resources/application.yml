@@ -31,4 +31,5 @@ spring:
         testIndexName: tests
 
 jwt:
-  secret: skaskdnw123!@#
+  secret:
+

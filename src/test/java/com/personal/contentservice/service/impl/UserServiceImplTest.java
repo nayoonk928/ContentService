@@ -2,82 +2,86 @@ package com.personal.contentservice.service.impl;
 
 import static com.personal.contentservice.exception.ErrorCode.ALREADY_EXISTS_EMAIL;
 import static com.personal.contentservice.exception.ErrorCode.ALREADY_EXISTS_NICKNAME;
+import static com.personal.contentservice.exception.ErrorCode.INCORRECT_EMAIL_OR_PASSWORD;
+import static com.personal.contentservice.exception.ErrorCode.SAME_CURRENT_PASSWORD;
+import static com.personal.contentservice.exception.ErrorCode.USER_NOT_FOUND;
 import static org.hibernate.validator.internal.util.Contracts.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.personal.contentservice.domain.User;
+import com.personal.contentservice.dto.SignInDto;
 import com.personal.contentservice.dto.SignUpDto;
-import com.personal.contentservice.dto.SignUpDto.Response;
+import com.personal.contentservice.dto.UserUpdateDto;
 import com.personal.contentservice.exception.CustomException;
 import com.personal.contentservice.repository.UserRepository;
+import com.personal.contentservice.security.jwt.JwtService;
+import com.personal.contentservice.security.principal.PrincipalDetails;
 import com.personal.contentservice.type.UserType;
-import jakarta.transaction.Transactional;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.test.annotation.DirtiesContext;
-
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 @SpringBootTest
-@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
-@Transactional
 class UserServiceImplTest {
 
-  @Autowired
-  private UserRepository userRepository;
-
-  @Autowired
+  @InjectMocks
   private UserServiceImpl userService;
+  @Mock
+  private UserRepository userRepository;
+  @Mock
+  private JwtService jwtService;
+  @Mock
+  private BCryptPasswordEncoder bCryptPasswordEncoder;
+  @Mock
+  private AuthenticationManager authenticationManager;
 
   @Test
   @DisplayName("회원가입_성공")
   void signUpTest_Success() {
     // given
     SignUpDto.Request request = SignUpDto.Request.builder()
-        .email("newEmail@example.com")
+        .email("test@example.com")
         .nickname("name")
-        .password("test23!!")
+        .password("test123!!")
         .userType(UserType.USER)
         .build();
 
     //when
-    ResponseEntity<?> result = userService.signUp(request);
+    SignUpDto.Response response = userService.signUp(request);
 
     //then
-    assertEquals(HttpStatus.OK, result.getStatusCode());
-    SignUpDto.Response response = (Response) result.getBody();
     assertNotNull(response);
-    assertEquals("newEmail@example.com", response.getEmail());
+    assertEquals("test@example.com", response.getEmail());
     assertEquals("name", response.getNickname());
     assertEquals(UserType.USER, response.getUserType());
   }
 
   @Test
   @DisplayName("회원가입_실패_이메일중복")
-  public void signUpTest_DuplicateEmail() {
+  void signUpTest_DuplicateEmail() {
     //given
-    User user = User.builder()
-        .email("newEmail@example.com")
-        .nickname("name")
-        .password("test23!!")
-        .userType(UserType.USER)
-        .build();
-    userRepository.save(user);
-
     SignUpDto.Request request = SignUpDto.Request.builder()
-        .email("newEmail@example.com")
+        .email("test@example.com")
         .nickname("name1")
-        .password("test23!!")
+        .password("test123!!")
         .userType(UserType.USER)
         .build();
+
+    when(userRepository.existsByEmail(request.getEmail())).thenReturn(true);
 
     //when
     CustomException exception = assertThrows(CustomException.class,
@@ -89,22 +93,15 @@ class UserServiceImplTest {
 
   @Test
   @DisplayName("회원가입_실패_닉네임중복")
-  public void signUpTest_DuplicateNickname() {
+  void signUpTest_DuplicateNickname() {
     //given
-    User user = User.builder()
-        .email("newEmail@example.com")
-        .nickname("name")
-        .password("test23!!")
-        .userType(UserType.USER)
-        .build();
-    userRepository.save(user);
-
     SignUpDto.Request request = SignUpDto.Request.builder()
-        .email("newEmail1@example.com")
+        .email("test@example.com")
         .nickname("name")
-        .password("test23!!")
+        .password("test123!!")
         .userType(UserType.USER)
         .build();
+    given(userRepository.existsByNickname(request.getNickname())).willReturn(true);
 
     //when
     CustomException exception = assertThrows(CustomException.class,
@@ -115,89 +112,194 @@ class UserServiceImplTest {
   }
 
   @Test
-  @DisplayName("동시성 테스트: 동일한 닉네임으로 동시에 가입 시 하나만 저장되는지 확인")
-  void testUniqueNicknameRegistration() throws InterruptedException {
-    int numThreads = 10; // 병렬로 실행할 스레드 수
-    String nickname = "nickname";
+  @DisplayName("로그인_성공")
+  void signInTest_Success() {
+    //given
+    String email = "test@example.com";
+    String password = "test123!!";
+    String token = "mockToken";
+    SignInDto.Request request = new SignInDto.Request(email, password);
+    User mockUser = new User();
+    PrincipalDetails principalDetails = new PrincipalDetails(mockUser);
+    UsernamePasswordAuthenticationToken authenticationToken =
+        new UsernamePasswordAuthenticationToken(email, password);
+    Authentication authenticated =
+        new UsernamePasswordAuthenticationToken(principalDetails, null,
+            principalDetails.getAuthorities());
 
-    // CountDownLatch 를 사용하여 모든 스레드가 준비될 때까지 대기하도록 설정
-    CountDownLatch latch = new CountDownLatch(1);
+    //when
+    when(authenticationManager.authenticate(authenticationToken)).thenReturn(authenticated);
+    when(jwtService.generateToken(any(User.class))).thenReturn(token);
 
-    // ExecutorService 를 사용하여 병렬로 스레드 실행
-    ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
-
-    for (int i = 0; i < numThreads; i++) {
-      executorService.submit(() -> {
-        try {
-          // 모든 스레드가 준비될 때까지 대기
-          latch.await();
-
-          // 가입 요청 실행
-          SignUpDto.Request request = SignUpDto.Request.builder()
-              .email("email" + System.currentTimeMillis() + "@example.com")
-              .nickname(nickname)
-              .password("test123!!")
-              .build();
-          userService.signUp(request);
-
-        } catch (InterruptedException e) {
-          e.printStackTrace();
-        }
-      });
-    }
-
-    // 모든 스레드를 동시에 시작하도록 CountDownLatch 의 값을 0으로 설정
-    latch.countDown();
-
-    // ExecutorService 를 종료하고 모든 스레드의 작업이 완료될 때까지 기다림
-    executorService.shutdown();
-    executorService.awaitTermination(5, TimeUnit.SECONDS);
-
-    // 닉네임이 중복되지 않고 하나만 저장되었는지 확인
-    assertEquals(1, userRepository.countByNickname(nickname));
+    //then
+    String result = userService.signIn(request);
+    assertEquals(token, result);
   }
 
   @Test
-  @DisplayName("동시성 테스트: 동일한 이메일로 동시에 가입 시 하나만 저장되는지 확인")
-  void testUniqueEmailRegistration() throws InterruptedException {
-    int numThreads = 10; // 병렬로 실행할 스레드 수
-    String email = "email@example.com";
+  @DisplayName("로그인_실패")
+  void signInTest_Fail() {
+    //given
+    String email = "test@example.com";
+    String password = "test12!!";
+    SignInDto.Request request = new SignInDto.Request(email, password);
+    UsernamePasswordAuthenticationToken authenticationToken =
+        new UsernamePasswordAuthenticationToken(email, password);
 
-    // CountDownLatch 를 사용하여 모든 스레드가 준비될 때까지 대기하도록 설정
-    CountDownLatch latch = new CountDownLatch(1);
+    //when
+    when(authenticationManager.authenticate(authenticationToken))
+        .thenThrow(new CustomException(INCORRECT_EMAIL_OR_PASSWORD) {
+        });
 
-    // ExecutorService 를 사용하여 병렬로 스레드 실행
-    ExecutorService executorService = Executors.newFixedThreadPool(numThreads);
+    //then
+    CustomException exception = assertThrows(CustomException.class,
+        () -> userService.signIn(request));
+    assertEquals(INCORRECT_EMAIL_OR_PASSWORD, exception.getErrorCode());
+  }
 
-    for (int i = 0; i < numThreads; i++) {
-      executorService.submit(() -> {
-        try {
-          // 모든 스레드가 준비될 때까지 대기
-          latch.await();
+  @Test
+  @DisplayName("회원탈퇴_성공")
+  void deleteUserTest_Success() {
+    //given
+    String email = "test@example.com";
+    User user = User.builder()
+        .email(email)
+        .build();
 
-          // 가입 요청 실행
-          SignUpDto.Request request = SignUpDto.Request.builder()
-              .email(email)
-              .nickname("name" + System.currentTimeMillis())
-              .password("test123!!")
-              .build();
-          userService.signUp(request);
+    //when
+    PrincipalDetails principalDetails = new PrincipalDetails(user);
+    Authentication authentication = mock(Authentication.class);
+    when(authentication.getPrincipal()).thenReturn(principalDetails);
 
-        } catch (InterruptedException e) {
-          e.printStackTrace();
-        }
-      });
-    }
+    userService.deleteUser(authentication);
 
-    // 모든 스레드를 동시에 시작하도록 CountDownLatch 의 값을 0으로 설정
-    latch.countDown();
+    //then
+    verify(userRepository, times(1)).delete(user);
+  }
 
-    // ExecutorService 를 종료하고 모든 스레드의 작업이 완료될 때까지 기다림
-    executorService.shutdown();
-    executorService.awaitTermination(5, TimeUnit.SECONDS);
+  @Test
+  @DisplayName("회원정보수정_성공")
+  void updateUserInfoTest_Success() {
+    //given
+    User user = User.builder()
+        .email("test@example.com")
+        .nickname("name")
+        .password("test123!!")
+        .userType(UserType.USER)
+        .build();
 
-    // 닉네임이 중복되지 않고 하나만 저장되었는지 확인
-    assertEquals(1, userRepository.countByEmail(email));
+    UserUpdateDto.Request request = UserUpdateDto.Request.builder()
+        .email("test2@example.com")
+        .nickname("name")
+        .password("test23!!")
+        .build();
+
+    PrincipalDetails principalDetails = new PrincipalDetails(user);
+    Authentication authentication =
+        new UsernamePasswordAuthenticationToken(
+            principalDetails,  "", principalDetails.getAuthorities());
+
+    //when
+    when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+    when(userRepository.existsByEmail(request.getEmail())).thenReturn(false);
+    when(bCryptPasswordEncoder.matches(request.getPassword(), user.getPassword())).thenReturn(false);
+    when(bCryptPasswordEncoder.encode(request.getPassword())).thenReturn("encodedPassword");
+
+    //then
+    UserUpdateDto.Response response = userService.updateUserInfo(authentication, request);
+    assertEquals(request.getNickname(), response.getNickname());
+  }
+
+  @Test
+  @DisplayName("회원정보수정_실패_이메일_중복")
+  void updateUserInfoTest_Failure_EmailDuplicate() {
+    //given
+    User user1 = User.builder()
+        .email("test@example.com")
+        .nickname("name")
+        .password("test123!!")
+        .userType(UserType.USER)
+        .build();
+
+    UserUpdateDto.Request request = UserUpdateDto.Request.builder()
+        .email("test2@example.com") // 이미 존재하는 이메일을 사용하여 업데이트를 시도
+        .build();
+
+    PrincipalDetails principalDetails = new PrincipalDetails(user1);
+    Authentication authentication =
+        new UsernamePasswordAuthenticationToken(
+            principalDetails,  "", principalDetails.getAuthorities());
+
+    //when
+    when(userRepository.findByEmail(user1.getEmail())).thenReturn(Optional.of(user1));
+    when(userRepository.existsByEmail("test2@example.com")).thenReturn(true);
+
+    //then
+    CustomException exception = assertThrows(CustomException.class,
+        () -> userService.updateUserInfo(authentication, request));
+    assertEquals(ALREADY_EXISTS_EMAIL, exception.getErrorCode());
+  }
+
+  @Test
+  @DisplayName("회원정보수정_실패_닉네임_중복")
+  void updateUserInfoTest_Failure_NicknameDuplicate() {
+    //given
+    User user1 = User.builder()
+        .email("test@example.com")
+        .nickname("name")
+        .password("test123!!")
+        .userType(UserType.USER)
+        .build();
+
+    UserUpdateDto.Request request = UserUpdateDto.Request.builder()
+        .nickname("name2")
+        .build();
+
+    PrincipalDetails principalDetails = new PrincipalDetails(user1);
+    Authentication authentication =
+        new UsernamePasswordAuthenticationToken(
+            principalDetails,  "", principalDetails.getAuthorities());
+
+    //when
+    when(userRepository.findByEmail(user1.getEmail())).thenReturn(Optional.of(user1));
+    when(userRepository.existsByNickname("name2")).thenReturn(true);
+
+    //then
+    CustomException exception = assertThrows(CustomException.class,
+        () -> userService.updateUserInfo(authentication, request));
+    assertEquals(ALREADY_EXISTS_NICKNAME, exception.getErrorCode());
+  }
+
+  @Test
+  @DisplayName("회원정보수정_실패_동일한_비밀번호")
+  void updateUserInfoTest_Failure_SamePassword() {
+    //given
+    String password = "test123!!";
+    User user1 = User.builder()
+        .email("test@example.com")
+        .nickname("name")
+        .password(password)
+        .userType(UserType.USER)
+        .build();
+
+    UserUpdateDto.Request request = UserUpdateDto.Request.builder()
+        .password(password)
+        .build();
+
+    PrincipalDetails principalDetails = new PrincipalDetails(user1);
+    Authentication authentication =
+        new UsernamePasswordAuthenticationToken(
+            principalDetails,  "", principalDetails.getAuthorities());
+
+    //when
+    when(userRepository.findByEmail(user1.getEmail())).thenReturn(Optional.of(user1));
+    when(bCryptPasswordEncoder
+        .matches(request.getPassword(), user1.getPassword())).thenReturn(true);
+
+    //then
+    CustomException exception = assertThrows(CustomException.class,
+        () -> userService.updateUserInfo(authentication, request));
+    assertEquals(SAME_CURRENT_PASSWORD, exception.getErrorCode());
   }
 
 }

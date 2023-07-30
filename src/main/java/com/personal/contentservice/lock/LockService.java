@@ -22,7 +22,7 @@ public class LockService {
     log.debug("Trying lock for user sign up : {}", key);
 
     try {
-      boolean isLock = lock.tryLock(1, 2, TimeUnit.SECONDS);
+      boolean isLock = lock.tryLock(1, 3, TimeUnit.SECONDS);
       if (!isLock) {
         log.error("=====Lock acquisition failed=====");
         throw new CustomException(USER_TRANSACTION_LOCK);
