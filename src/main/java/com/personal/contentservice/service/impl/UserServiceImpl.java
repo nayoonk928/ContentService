@@ -87,9 +87,14 @@ public class UserServiceImpl implements UserService {
   @Override
   @Transactional
   public void deleteUser(Authentication authentication) {
-    User user = userRepository.findByEmail(authentication.getName())
-        .orElseThrow(() -> new CustomException(USER_NOT_FOUND));
-    userRepository.delete(user);
+    if (authentication != null && authentication.isAuthenticated()) {
+      PrincipalDetails principalDetails = (PrincipalDetails) authentication.getPrincipal();
+
+      User user = principalDetails.getUser();
+      userRepository.delete(user);
+    } else {
+      throw new CustomException(USER_NOT_FOUND);
+    }
   }
 
   // 회원 정보 수정
