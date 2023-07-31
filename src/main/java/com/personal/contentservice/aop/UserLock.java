@@ -13,6 +13,4 @@ import java.lang.annotation.Target;
 @Inherited
 public @interface UserLock {
 
-  long tryLockTime() default 5000L;
-
 }

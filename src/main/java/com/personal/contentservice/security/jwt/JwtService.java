@@ -29,7 +29,7 @@ public class JwtService {
 
   private final long TOKEN_VALID_TIME = 1000 * 60 * 60 * 24; // 하루
 
-  @Value("${jwt.secret}")
+  @Value("#{system['jwt.secret']}")
   private String secretKey;
 
   @PostConstruct

@@ -30,7 +30,7 @@ public class LockService {
     } catch (CustomException e) {
       throw e;
     } catch (Exception e) {
-      log.error("Redis lock failed", e);
+      log.error("Redisson lock failed", e);
     }
   }
 

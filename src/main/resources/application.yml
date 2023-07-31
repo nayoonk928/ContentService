@@ -29,7 +29,3 @@ spring:
       indices:
         contentsIndexName: contents
         testIndexName: tests
-
-jwt:
-  secret:
-
