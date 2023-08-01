@@ -13,11 +13,14 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ContentServiceImpl implements ContentService {
 
   private final TmdbApiClient tmdbApiClient;
@@ -25,6 +28,7 @@ public class ContentServiceImpl implements ContentService {
 
   @Override
   @Transactional
+  @Cacheable(value = "contentSearch", key = "{#query, #page}", cacheManager = "testCacheManager")
   public List<ContentSearchDto> searchContents(
       String query, int page
   ) throws IOException, InterruptedException {
@@ -58,7 +62,7 @@ public class ContentServiceImpl implements ContentService {
       }
 
     } catch (IOException e) {
-      e.printStackTrace();
+      log.error("searchContents: ", e);
     }
     return contentSearchDtoList;
   }

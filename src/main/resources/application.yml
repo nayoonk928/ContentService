@@ -29,3 +29,7 @@ spring:
       indices:
         contentsIndexName: contents
         testIndexName: tests
+
+logging:
+  level:
+    com.personal.contentservice.service.impl.ContentServiceImpl: DEBUG
