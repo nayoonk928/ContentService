@@ -85,13 +85,13 @@ public class ContentServiceImpl implements ContentService {
       return null;
     }
 
-    int id = result.get("id").asInt();
+    long id = result.get("id").asLong();
 
     JsonNode genre_ids = result.get("genre_ids");
     List<String> genres = new ArrayList<>();
     for (JsonNode genreIdNode : genre_ids) {
-      int genreId = genreIdNode.asInt();
-      Genre genre = genreRepository.findById((long) genreId).orElse(null);
+      long genreId = genreIdNode.asLong();
+      Genre genre = genreRepository.findById(genreId).orElse(null);
       if (genre != null) {
         genres.add(genre.getName());
       }

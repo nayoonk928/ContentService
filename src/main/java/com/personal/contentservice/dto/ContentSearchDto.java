@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class ContentSearchDto {
 
-  private int id;
+  private long id;
   private String title;
   private String mediaType;
   private List<String> genres;

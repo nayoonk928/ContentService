@@ -17,7 +17,7 @@ import lombok.NoArgsConstructor;
 public class Genre {
 
   @Id
-  private int id;
+  private long id;
 
   private String name;
 

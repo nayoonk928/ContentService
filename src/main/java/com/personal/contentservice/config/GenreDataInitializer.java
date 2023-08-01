@@ -40,11 +40,11 @@ public class GenreDataInitializer implements CommandLineRunner {
       List<Genre> genres = new ArrayList<>();
 
       for (JsonNode result : results) {
-        int id = result.get("id").asInt();
+        long id = result.get("id").asLong();
         String name = result.get("name").asText();
 
         // 이미 해당 id가 있는지 확인
-        if (!genreRepository.existsById((long) id)) {
+        if (!genreRepository.existsById(id)) {
           Genre genre = new Genre(id, name);
           genres.add(genre);
         }
