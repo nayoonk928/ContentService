@@ -1,13 +1,15 @@
 package com.personal.contentservice.service.impl;
 
+import static com.personal.contentservice.exception.ErrorCode.NO_RESULTS_FOUND;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.personal.contentservice.config.TmdbApiClient;
 import com.personal.contentservice.domain.Genre;
 import com.personal.contentservice.dto.ContentSearchDto;
+import com.personal.contentservice.exception.CustomException;
 import com.personal.contentservice.repository.GenreRepository;
 import com.personal.contentservice.service.ContentService;
-import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -29,18 +31,22 @@ public class ContentServiceImpl implements ContentService {
   @Override
   @Transactional
   @Cacheable(value = "contentSearch", key = "{#query, #page}", cacheManager = "testCacheManager")
-  public List<ContentSearchDto> searchContents(
-      String query, int page
-  ) throws IOException, InterruptedException {
+  public List<ContentSearchDto> searchContents(String query, int page) throws Exception {
     String jsonStr = tmdbApiClient.searchContents(query, page);
+
     ObjectMapper objectMapper = new ObjectMapper();
     List<ContentSearchDto> contentSearchDtoList = new ArrayList<>();
     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-    try {
-      JsonNode root = objectMapper.readTree(jsonStr);
-      JsonNode results = root.path("results");
+    JsonNode root = objectMapper.readTree(jsonStr);
+    JsonNode results = root.path("results");
+    int totalResults = root.path("total_results").asInt();
 
+    if (totalResults == 0) {
+      throw new CustomException(NO_RESULTS_FOUND);
+    }
+
+    try {
       for (JsonNode result : results) {
         String mediaType = result.get("media_type").asText();
         if (mediaType.equals("person") && result.has("known_for")) {
@@ -61,9 +67,10 @@ public class ContentServiceImpl implements ContentService {
         }
       }
 
-    } catch (IOException e) {
-      log.error("searchContents: ", e);
+    } catch (Exception e) {
+      log.error("Error search contents: ", e);
     }
+
     return contentSearchDtoList;
   }
 

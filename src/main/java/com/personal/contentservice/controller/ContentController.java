@@ -1,7 +1,6 @@
 package com.personal.contentservice.controller;
 
 import com.personal.contentservice.service.ContentService;
-import java.io.IOException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,8 +16,9 @@ public class ContentController {
   private final ContentService contentService;
 
   @GetMapping("/search/{query}/{page}")
-  public ResponseEntity<?> searchContents(@PathVariable String query, @PathVariable int page)
-      throws IOException, InterruptedException {
+  public ResponseEntity<?> searchContents(
+      @PathVariable String query, @PathVariable int page
+  ) throws Exception {
     return ResponseEntity.ok().body(contentService.searchContents(query, page));
   }
 }
