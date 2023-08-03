@@ -10,10 +10,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.personal.contentservice.config.TmdbApiClient;
-import com.personal.contentservice.dto.search.MediaTypeDto;
-import com.personal.contentservice.dto.search.MovieSearchDto;
-import com.personal.contentservice.dto.search.SearchResponseDto;
-import com.personal.contentservice.dto.search.TvSearchDto;
+import com.personal.contentservice.dto.search.api.MediaTypeDto;
+import com.personal.contentservice.dto.search.api.SearchMovieResponse;
+import com.personal.contentservice.dto.search.api.ApiSearchResponse;
+import com.personal.contentservice.dto.search.api.SearchTvResponse;
 import com.personal.contentservice.exception.CustomException;
 import com.personal.contentservice.service.GenreService;
 import java.util.ArrayList;
@@ -53,12 +53,12 @@ public class ContentServiceImplTest {
     dummyGenreMap.put(2L, "Drama");
 
     // Mock tmdbApiClient.searchContents
-    SearchResponseDto dummyResponse = new SearchResponseDto();
+    ApiSearchResponse dummyResponse = new ApiSearchResponse();
     List<MediaTypeDto> mediaTypeDtos = new ArrayList<>();
-    MovieSearchDto movieSearchDto = new MovieSearchDto();
-    movieSearchDto.setDate("2020-01-01");
-    movieSearchDto.setGenreIds(Collections.singletonList(1L));
-    mediaTypeDtos.add(movieSearchDto);
+    SearchMovieResponse searchMovieResponse = new SearchMovieResponse();
+    searchMovieResponse.setReleaseDate("2020-01-01");
+    searchMovieResponse.setGenreIds(Collections.singletonList(1L));
+    mediaTypeDtos.add(searchMovieResponse);
     dummyResponse.setResults(mediaTypeDtos);
 
     when(tmdbApiClient.searchContents(anyString(), anyInt())).thenReturn(dummyResponse);
@@ -75,20 +75,20 @@ public class ContentServiceImplTest {
     String query = "test";
     int page = 1;
 
-    SearchResponseDto responseDto = new SearchResponseDto();
-    MovieSearchDto movieDto = new MovieSearchDto();
+    ApiSearchResponse responseDto = new ApiSearchResponse();
+    SearchMovieResponse movieDto = new SearchMovieResponse();
     movieDto.setId(1L);
     movieDto.setTitle("Test Movie");
     movieDto.setMediaType("movie");
     movieDto.setGenreIds(Arrays.asList(1L, 2L));
-    movieDto.setDate("2020-01-01");
+    movieDto.setReleaseDate("2020-01-01");
 
-    TvSearchDto tvShowDto = new TvSearchDto();
+    SearchTvResponse tvShowDto = new SearchTvResponse();
     tvShowDto.setId(2L);
-    tvShowDto.setTitle("Test TvShow");
+    tvShowDto.setName("Test TvShow");
     tvShowDto.setMediaType("tv");
     tvShowDto.setGenreIds(Arrays.asList(1L, 2L));
-    tvShowDto.setDate("2020-01-01");
+    tvShowDto.setFirstAirDate("2020-01-01");
 
     responseDto.setResults(Arrays.asList(movieDto, tvShowDto));
 
@@ -106,23 +106,23 @@ public class ContentServiceImplTest {
     assertEquals(2, result.size());
 
     Object firstResult = result.get(0);
-    if (firstResult instanceof MovieSearchDto.Response) {
-      MovieSearchDto.Response movieResponse = (MovieSearchDto.Response) firstResult;
+    if (firstResult instanceof SearchMovieResponse) {
+      SearchMovieResponse movieResponse = (SearchMovieResponse) firstResult;
       assertEquals(1L, movieResponse.getId());
       assertEquals("Test Movie", movieResponse.getTitle());
       assertEquals("movie", movieResponse.getMediaType());
       assertEquals(Arrays.asList("genre1", "genre2"), movieResponse.getGenreNames());
-      assertEquals("2020-01-01", movieResponse.getDate());
+      assertEquals("2020-01-01", movieResponse.getReleaseDate());
     }
 
     Object secondResult = result.get(1);
-    if (secondResult instanceof TvSearchDto.Response) {
-      TvSearchDto.Response tvShowResponse = (TvSearchDto.Response) secondResult;
+    if (secondResult instanceof SearchTvResponse) {
+      SearchTvResponse tvShowResponse = (SearchTvResponse) secondResult;
       assertEquals(2L, tvShowResponse.getId());
-      assertEquals("Test TvShow", tvShowResponse.getTitle());
+      assertEquals("Test TvShow", tvShowResponse.getName());
       assertEquals("tv", tvShowResponse.getMediaType());
       assertEquals(Arrays.asList("genre1", "genre2"), tvShowResponse.getGenreNames());
-      assertEquals("2020-01-01", tvShowResponse.getDate());
+      assertEquals("2020-01-01", tvShowResponse.getFirstAirDate());
     }
   }
 
@@ -144,7 +144,7 @@ public class ContentServiceImplTest {
   @DisplayName("컨텐츠 검색_실패_결과없음")
   void searchContentsTest_Fail_WithNoResults() throws Exception {
     //given
-    SearchResponseDto dummyResponse = new SearchResponseDto();
+    ApiSearchResponse dummyResponse = new ApiSearchResponse();
     dummyResponse.setResults(new ArrayList<>());
 
     //when

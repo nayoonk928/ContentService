@@ -3,10 +3,11 @@ package com.personal.contentservice.service.impl;
 import static com.personal.contentservice.exception.ErrorCode.NO_RESULTS_FOUND;
 
 import com.personal.contentservice.config.TmdbApiClient;
-import com.personal.contentservice.dto.search.MediaTypeDto;
-import com.personal.contentservice.dto.search.MovieSearchDto;
-import com.personal.contentservice.dto.search.SearchResponseDto;
-import com.personal.contentservice.dto.search.TvSearchDto;
+import com.personal.contentservice.dto.search.SearchContentDto;
+import com.personal.contentservice.dto.search.api.MediaTypeDto;
+import com.personal.contentservice.dto.search.api.SearchMovieResponse;
+import com.personal.contentservice.dto.search.api.ApiSearchResponse;
+import com.personal.contentservice.dto.search.api.SearchTvResponse;
 import com.personal.contentservice.exception.CustomException;
 import com.personal.contentservice.service.ContentService;
 import com.personal.contentservice.service.GenreService;
@@ -33,17 +34,14 @@ public class ContentServiceImpl implements ContentService {
   @Transactional
   @Cacheable(value = "contentSearch", key = "{#query, #page}", cacheManager = "testCacheManager")
   public List<Object> searchContents(String query, int page) throws Exception {
-    SearchResponseDto response = tmdbApiClient.searchContents(query, page);
+    ApiSearchResponse response = tmdbApiClient.searchContents(query, page);
 
     // 현재 시간 이후에 공개되는 작품은 제외
     List<MediaTypeDto> results = response.getResults().stream()
         .filter(result -> {
-          if (result instanceof MovieSearchDto) {
-            MovieSearchDto movie = (MovieSearchDto) result;
-            return isDateBeforeNow(movie.getDate());
-          } else if (result instanceof TvSearchDto) {
-            TvSearchDto tvShow = (TvSearchDto) result;
-            return isDateBeforeNow(tvShow.getDate());
+          if (result instanceof SearchMovieResponse || result instanceof SearchTvResponse) {
+            SearchContentDto contentDto = result.toSearchContentDto();
+            return isDateBeforeNow(contentDto.getDate());
           } else {
             return true;
           }
@@ -57,10 +55,10 @@ public class ContentServiceImpl implements ContentService {
 
     List<Object> responseDtoList = new ArrayList<>();
     for (MediaTypeDto dto : results) {
-      if (dto instanceof MovieSearchDto) {
-        responseDtoList.add(MovieSearchDto.Response.from((MovieSearchDto) dto));
-      } else if (dto instanceof TvSearchDto) {
-        responseDtoList.add(TvSearchDto.Response.from((TvSearchDto) dto));
+      if (dto instanceof SearchMovieResponse) {
+        responseDtoList.add(dto);
+      } else if (dto instanceof SearchTvResponse) {
+        responseDtoList.add(dto);
       }
     }
 

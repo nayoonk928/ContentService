@@ -1,7 +1,8 @@
 package com.personal.contentservice.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.personal.contentservice.dto.search.SearchResponseDto;
+import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.personal.contentservice.dto.search.api.ApiSearchResponse;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -37,7 +38,7 @@ public class TmdbApiClient {
     return client.send(request, HttpResponse.BodyHandlers.ofString());
   }
 
-  public SearchResponseDto searchContents(String query, int page) throws Exception {
+  public ApiSearchResponse searchContents(String query, int page) throws Exception {
     URI uri = UriComponentsBuilder
         .fromUriString(tmdbApiBase)
         .path("/search/multi")
@@ -48,10 +49,12 @@ public class TmdbApiClient {
         .toUri();
     HttpResponse<String> response = getResponse(uri);
 
-    SearchResponseDto searchResponseDto =
-        objectMapper.readValue(response.body(), SearchResponseDto.class);
+    objectMapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
 
-    return searchResponseDto;
+    ApiSearchResponse apiSearchResponse =
+        objectMapper.readValue(response.body(), ApiSearchResponse.class);
+
+    return apiSearchResponse;
   }
 
   public HttpResponse<String> fetchMovieGenresFromAPI() throws Exception {
