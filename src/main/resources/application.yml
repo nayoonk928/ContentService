@@ -29,3 +29,7 @@ spring:
       indices:
         contentsIndexName: contents
         testIndexName: tests
+
+tmdb:
+  api:
+    base: https://api.themoviedb.org/3

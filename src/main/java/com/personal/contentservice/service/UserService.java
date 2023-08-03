@@ -3,7 +3,6 @@ package com.personal.contentservice.service;
 import com.personal.contentservice.dto.SignInDto;
 import com.personal.contentservice.dto.SignUpDto;
 import com.personal.contentservice.dto.UserUpdateDto;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.transaction.annotation.Transactional;
 
