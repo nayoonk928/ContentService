@@ -1,6 +1,5 @@
 package com.personal.contentservice.dto.search;
 
-import com.personal.contentservice.dto.search.api.MediaTypeDto;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,6 +15,6 @@ public class SearchPersonDto {
   private long id;
   private String name;
   private String mediaType;
-  private List<MediaTypeDto> knownFor;
+  private List<SearchContentDto> knownFor;
 
 }

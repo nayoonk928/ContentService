@@ -1,5 +1,6 @@
 package com.personal.contentservice.service.impl;
 
+import com.personal.contentservice.domain.Genre;
 import com.personal.contentservice.repository.GenreRepository;
 import com.personal.contentservice.service.GenreService;
 import java.util.Map;
@@ -15,7 +16,7 @@ public class GenreServiceImpl implements GenreService {
 
   public Map<Long, String> getAllGenres() {
     Map<Long, String> genreMap = genreRepository.findAll().stream().collect(
-        Collectors.toMap(it -> it.getId(), it -> it.getName()));
+        Collectors.toMap(Genre::getId, Genre::getName));
     return genreMap;
   }
 
