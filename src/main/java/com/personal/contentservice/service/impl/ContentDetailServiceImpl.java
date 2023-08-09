@@ -9,6 +9,7 @@ import com.personal.contentservice.config.TmdbApiClient;
 import com.personal.contentservice.domain.Content;
 import com.personal.contentservice.domain.ContentKey;
 import com.personal.contentservice.domain.Genre;
+import com.personal.contentservice.dto.ContentDto;
 import com.personal.contentservice.dto.detail.CastDto;
 import com.personal.contentservice.dto.detail.ContentDetailDto;
 import com.personal.contentservice.dto.detail.CrewDto;
@@ -37,16 +38,15 @@ public class ContentDetailServiceImpl implements ContentDetailService {
   private final TmdbApiClient tmdbApiClient;
   private final ContentRepository contentRepository;
 
-  private ObjectMapper objectMapper = new ObjectMapper();
-
   @Override
   @Transactional
-  public Content getContentDetail(long id, String mediaType) throws Exception {
+  public ContentDto getContentDetail(long id, String mediaType) throws Exception {
     Content dbContent =
         contentRepository.findByContentKey_IdAndContentKey_MediaType(id, mediaType);
 
+
     if (dbContent != null) {
-      return dbContent;
+      return convertContentToDto(dbContent);
     } else {
       ContentDetailDto contentDetailDto = null;
 
@@ -79,13 +79,25 @@ public class ContentDetailServiceImpl implements ContentDetailService {
 
         contentRepository.save(content);
 
-        return content;
+        ContentDto contentDto = convertContentToDto(content);
+        return contentDto;
       } else {
         throw new CustomException(NO_RESULTS_FOUND);
       }
     }
   }
 
+  private ContentDto convertContentToDto(Content content) {
+    return ContentDto.builder()
+        .id(content.getContentKey().getId())
+        .mediaType(content.getContentKey().getMediaType())
+        .title(content.getTitle())
+        .contentYear(content.getContentYear())
+        .averageRating(content.getAverageRating())
+        .genres(content.getGenres())
+        .details(content.getDetails())
+        .build();
+  }
 
   private ContentDetailDto convertApiResponseToMovieDto(MovieDetailApiResponse response) {
     List<String> productionCountries = response.getProductionCountries().stream()

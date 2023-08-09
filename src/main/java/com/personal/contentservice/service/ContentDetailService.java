@@ -1,9 +1,9 @@
 package com.personal.contentservice.service;
 
-import com.personal.contentservice.domain.Content;
+import com.personal.contentservice.dto.ContentDto;
 
 public interface ContentDetailService {
 
-  Content getContentDetail(long id, String type) throws Exception;
+  ContentDto getContentDetail(long id, String type) throws Exception;
 
 }
