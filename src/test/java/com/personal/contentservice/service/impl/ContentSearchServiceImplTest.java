@@ -13,6 +13,7 @@ import com.personal.contentservice.dto.search.api.ApiSearchResponse;
 import com.personal.contentservice.dto.search.api.MediaTypeDto;
 import com.personal.contentservice.dto.search.api.SearchMovieResponse;
 import com.personal.contentservice.exception.CustomException;
+import com.personal.contentservice.repository.ContentRepository;
 import com.personal.contentservice.service.GenreService;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -27,7 +28,7 @@ import org.mockito.Mock;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-public class ContentServiceImplTest {
+public class ContentSearchServiceImplTest {
 
   @Mock
   private TmdbApiClient tmdbApiClient;
@@ -36,13 +37,16 @@ public class ContentServiceImplTest {
   private GenreService genreService;
 
   @InjectMocks
-  private ContentServiceImpl contentService;
+  private ContentSearchServiceImpl contentService;
+
+  @Mock
+  private ContentRepository contentRepository;
 
   @BeforeEach
   void setUp() throws Exception {
     tmdbApiClient = mock(TmdbApiClient.class);
     genreService = mock(GenreService.class);
-    contentService = new ContentServiceImpl(tmdbApiClient, genreService);
+    contentService = new ContentSearchServiceImpl(tmdbApiClient, genreService, contentRepository);
 
     // Prepare dummy data
     Map<Long, String> dummyGenreMap = new HashMap<>();
@@ -75,7 +79,7 @@ public class ContentServiceImplTest {
     movieResponse.setTitle("Test Movie");
     movieResponse.setMediaType("movie");
     movieResponse.setGenreIds(Collections.singletonList(1L));
-    movieResponse.setReleaseDate("2023-08-05"); // Valid release date
+    movieResponse.setReleaseDate("2023-08-05");
     apiSearchResponse.setResults(Collections.singletonList(movieResponse));
 
     //when
@@ -85,7 +89,7 @@ public class ContentServiceImplTest {
 
     List<SearchContentDto> result = contentService.searchContents("Test", 1);
 
-    // then
+    //then
     assertEquals(1, result.size());
     SearchContentDto contentDto = result.get(0);
     assertEquals(1L, contentDto.getId());
