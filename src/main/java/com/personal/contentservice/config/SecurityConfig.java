@@ -45,7 +45,7 @@ public class SecurityConfig {
         // URL 별 권한 관리 옵션
         .authorizeHttpRequests(authorize -> authorize
             .requestMatchers(new AntPathRequestMatcher("/h2-console/**")).permitAll()
-            .requestMatchers("/user/signup", "/user/signin", "contents/search/**").permitAll()
+            .requestMatchers("/user/signup", "/user/signin", "contents/**").permitAll()
             .anyRequest().authenticated())
         .addFilterBefore(new JwtAuthenticationFilter(authenticationManager(), jwtService),
                 UsernamePasswordAuthenticationFilter.class);

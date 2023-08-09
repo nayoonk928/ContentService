@@ -19,7 +19,8 @@ public enum ErrorCode {
   USER_NOT_FOUND("사용자를 찾을 수 없습니다.", BAD_REQUEST),
   UNAUTHORIZED("인증되지 않은 사용자입니다.", BAD_REQUEST),
   SAME_CURRENT_PASSWORD("현재 비밀번호와 다른 비밀번호로 변경해주세요.", BAD_REQUEST),
-  NO_RESULTS_FOUND("검색 결과가 없습니다.", BAD_REQUEST)
+  NO_RESULTS_FOUND("검색 결과가 없습니다.", BAD_REQUEST),
+  INVALID_MEDIA_TYPE("옳지 않은 미디어 타입입니다.", BAD_REQUEST)
   ;
 
   private final String description;

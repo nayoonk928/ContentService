@@ -1,7 +1,10 @@
 package com.personal.contentservice.config;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.personal.contentservice.dto.detail.api.MovieDetailApiResponse;
+import com.personal.contentservice.dto.detail.api.TvDetailApiResponse;
 import com.personal.contentservice.dto.search.api.ApiSearchResponse;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -75,6 +78,48 @@ public class TmdbApiClient {
         .build()
         .toUri();
     return getResponse(uri);
+  }
+
+  public MovieDetailApiResponse getMovieDetail(long id) throws Exception {
+    URI uri = UriComponentsBuilder
+        .fromUriString(tmdbApiBase)
+        .path("/movie/" + id)
+        .queryParam("append_to_response", "credits")
+        .queryParam("language", "ko")
+        .build()
+        .toUri();
+    HttpResponse<String> response = getResponse(uri);
+
+    objectMapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+
+    TypeReference<MovieDetailApiResponse> movieDetailTypeRef = new TypeReference<>() {};
+    MovieDetailApiResponse movieDetailApiResponse =
+        objectMapper.readValue(response.body(), movieDetailTypeRef);
+
+    movieDetailApiResponse.setMediaType("movie");
+
+    return movieDetailApiResponse;
+  }
+
+  public TvDetailApiResponse getTvDetail(long id) throws Exception {
+    URI uri = UriComponentsBuilder
+        .fromUriString(tmdbApiBase)
+        .path("/tv/" + id)
+        .queryParam("append_to_response", "credits")
+        .queryParam("language", "ko")
+        .build()
+        .toUri();
+    HttpResponse<String> response = getResponse(uri);
+
+    objectMapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+
+    TypeReference<TvDetailApiResponse> tvDetailTypeRef = new TypeReference<>() {};
+    TvDetailApiResponse tvDetailApiResponse =
+        objectMapper.readValue(response.body(), tvDetailTypeRef);
+
+    tvDetailApiResponse.setMediaType("tv");
+
+    return tvDetailApiResponse;
   }
 
 }
