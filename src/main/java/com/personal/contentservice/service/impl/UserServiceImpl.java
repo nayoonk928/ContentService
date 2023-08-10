@@ -4,7 +4,6 @@ import static com.personal.contentservice.exception.ErrorCode.ALREADY_EXISTS_EMA
 import static com.personal.contentservice.exception.ErrorCode.ALREADY_EXISTS_NICKNAME;
 import static com.personal.contentservice.exception.ErrorCode.INCORRECT_EMAIL_OR_PASSWORD;
 import static com.personal.contentservice.exception.ErrorCode.SAME_CURRENT_PASSWORD;
-import static com.personal.contentservice.exception.ErrorCode.USER_NOT_FOUND;
 
 import com.personal.contentservice.domain.User;
 import com.personal.contentservice.dto.SignInDto;
@@ -15,6 +14,7 @@ import com.personal.contentservice.repository.UserRepository;
 import com.personal.contentservice.security.jwt.JwtService;
 import com.personal.contentservice.security.principal.PrincipalDetails;
 import com.personal.contentservice.service.UserService;
+import com.personal.contentservice.util.UserAuthenticationUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -87,7 +87,7 @@ public class UserServiceImpl implements UserService {
   @Override
   @Transactional
   public void deleteUser(Authentication authentication) {
-    User user = getUser(authentication);
+    User user = UserAuthenticationUtils.getUser(authentication);
     userRepository.delete(user);
   }
 
@@ -96,7 +96,7 @@ public class UserServiceImpl implements UserService {
   public UserUpdateDto.Response updateUserInfo(
       Authentication authentication, UserUpdateDto.Request request
   ) {
-    User user = getUser(authentication);
+    User user = UserAuthenticationUtils.getUser(authentication);
 
     // 이메일 변경
     String newEmail = request.getEmail();
@@ -127,15 +127,6 @@ public class UserServiceImpl implements UserService {
 
     userRepository.save(user);
     return UserUpdateDto.Response.from(user);
-  }
-
-  private User getUser(Authentication authentication) {
-    PrincipalDetails principalDetails = (PrincipalDetails) authentication.getPrincipal();
-    User user = principalDetails.getUser();
-    if (user == null) {
-      throw new CustomException(USER_NOT_FOUND);
-    }
-    return user;
   }
 
 }

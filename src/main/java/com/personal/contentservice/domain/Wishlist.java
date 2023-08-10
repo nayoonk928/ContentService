@@ -1,6 +1,5 @@
 package com.personal.contentservice.domain;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinColumns;
@@ -19,12 +18,10 @@ import lombok.NoArgsConstructor;
 @Table(name = "wishlist")
 public class Wishlist extends BaseEntity{
 
-  @JsonManagedReference
   @ManyToOne
   @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
   private User user;
 
-  @JsonManagedReference
   @ManyToOne
   @JoinColumns({
       @JoinColumn(name = "content_id", referencedColumnName = "id", nullable = false),

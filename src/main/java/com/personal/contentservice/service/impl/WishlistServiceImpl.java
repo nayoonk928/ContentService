@@ -13,8 +13,10 @@ import com.personal.contentservice.repository.ContentRepository;
 import com.personal.contentservice.repository.WishlistRepository;
 import com.personal.contentservice.security.principal.PrincipalDetails;
 import com.personal.contentservice.service.WishlistService;
+import com.personal.contentservice.util.UserAuthenticationUtils;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -28,7 +30,7 @@ public class WishlistServiceImpl implements WishlistService {
 
   @Override
   public String addToWishlist(Authentication authentication, WishlistDto.Request request) {
-    User user = getUser(authentication);
+    User user = UserAuthenticationUtils.getUser(authentication);
 
     Content content = contentRepository.findByContentKey_IdAndContentKey_MediaType(
         request.getId(), request.getMediaType());
@@ -48,22 +50,19 @@ public class WishlistServiceImpl implements WishlistService {
 
   @Override
   public List<WishlistDto.Response> getAllContentsInWishlist(Authentication authentication) {
-    User user = getUser(authentication);
+    User user = UserAuthenticationUtils.getUser(authentication);
     List<Wishlist> wishlists = wishlistRepository.findByUser(user);
-    List<WishlistDto.Response> wishlistDto = new ArrayList<>();
 
-    for (Wishlist wishlist : wishlists) {
-      Content content = wishlist.getContent();
-      WishlistDto.Response response = convertContentToDto(content);
-      wishlistDto.add(response);
-    }
+    List<WishlistDto.Response> wishlistDto = wishlists.stream()
+        .map(wishlist -> convertContentToDto(wishlist.getContent()))
+        .collect(Collectors.toList());
 
     return wishlistDto;
   }
 
   @Override
   public String deleteFromWishlist(Authentication authentication, WishlistDto.Request request) {
-    User user = getUser(authentication);
+    User user = UserAuthenticationUtils.getUser(authentication);
 
     Content content = contentRepository
         .findByContentKey_IdAndContentKey_MediaType(request.getId(), request.getMediaType());
@@ -86,15 +85,6 @@ public class WishlistServiceImpl implements WishlistService {
         .contentYear(content.getContentYear())
         .averageRating(content.getAverageRating())
         .build();
-  }
-
-  private User getUser(Authentication authentication) {
-    PrincipalDetails principalDetails = (PrincipalDetails) authentication.getPrincipal();
-    User user = principalDetails.getUser();
-    if (user == null) {
-      throw new CustomException(USER_NOT_FOUND);
-    }
-    return user;
   }
 
 }
