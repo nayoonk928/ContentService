@@ -22,6 +22,10 @@ public class Content {
   @OneToMany(mappedBy = "content")
   private List<Review> reviews = new ArrayList<>();
 
+  @JsonBackReference
+  @OneToMany(mappedBy = "content")
+  private List<Wishlist> wishlists = new ArrayList<>();
+
   @EmbeddedId
   private ContentKey contentKey;
 

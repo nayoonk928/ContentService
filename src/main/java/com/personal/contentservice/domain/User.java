@@ -27,6 +27,10 @@ public class User extends BaseEntity {
   @OneToMany(mappedBy = "user")
   private List<Review> reviews = new ArrayList<>();
 
+  @JsonBackReference
+  @OneToMany(mappedBy = "user")
+  private List<Wishlist> wishlists = new ArrayList<>();
+
   @Column(nullable = false, unique = true)
   private String email;
 
