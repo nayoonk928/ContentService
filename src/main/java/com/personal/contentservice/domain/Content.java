@@ -1,6 +1,5 @@
 package com.personal.contentservice.domain;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.personal.contentservice.util.JsonNodeConverter;
 import jakarta.persistence.Column;
@@ -18,7 +17,7 @@ import lombok.Data;
 @Table(name = "content")
 public class Content {
 
-  @JsonBackReference
+
   @OneToMany(mappedBy = "content")
   private List<Review> reviews = new ArrayList<>();
 

@@ -20,7 +20,9 @@ public enum ErrorCode {
   UNAUTHORIZED("인증되지 않은 사용자입니다.", BAD_REQUEST),
   SAME_CURRENT_PASSWORD("현재 비밀번호와 다른 비밀번호로 변경해주세요.", BAD_REQUEST),
   NO_RESULTS_FOUND("검색 결과가 없습니다.", BAD_REQUEST),
-  INVALID_MEDIA_TYPE("옳지 않은 미디어 타입입니다.", BAD_REQUEST)
+  INVALID_MEDIA_TYPE("옳지 않은 미디어 타입입니다.", BAD_REQUEST),
+  CONTENT_NOT_FOUND("해당 컨텐츠가 존재하지 않습니다.", BAD_REQUEST),
+  CONTENT_NOT_IN_WISHLIST("해당 컨텐츠가 위시리스트에 존재하지 않습니다.", BAD_REQUEST);
   ;
 
   private final String description;
