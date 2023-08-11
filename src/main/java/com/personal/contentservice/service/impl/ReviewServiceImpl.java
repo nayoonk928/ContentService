@@ -1,5 +1,6 @@
 package com.personal.contentservice.service.impl;
 
+import static com.personal.contentservice.exception.ErrorCode.ALREADY_REPORTED_REVIEW;
 import static com.personal.contentservice.exception.ErrorCode.CONTENT_NOT_FOUND;
 import static com.personal.contentservice.exception.ErrorCode.REVIEW_ALREADY_EXISTS;
 import static com.personal.contentservice.exception.ErrorCode.REVIEW_NOT_FOUND;
@@ -7,16 +8,23 @@ import static com.personal.contentservice.exception.ErrorCode.REVIEW_NOT_FOUND;
 import com.personal.contentservice.domain.Content;
 import com.personal.contentservice.domain.ContentKey;
 import com.personal.contentservice.domain.Review;
+import com.personal.contentservice.domain.ReviewReaction;
+import com.personal.contentservice.domain.ReviewReport;
 import com.personal.contentservice.domain.User;
+import com.personal.contentservice.dto.ReviewReactionDto;
+import com.personal.contentservice.dto.ReviewReportDto;
 import com.personal.contentservice.dto.review.ReviewAddDto;
 import com.personal.contentservice.dto.review.ReviewDeleteDto;
 import com.personal.contentservice.dto.review.ReviewUpdateDto;
 import com.personal.contentservice.exception.CustomException;
+import com.personal.contentservice.lock.LockService;
 import com.personal.contentservice.repository.ContentRepository;
+import com.personal.contentservice.repository.ReviewReactionRepository;
+import com.personal.contentservice.repository.ReviewReportRepository;
 import com.personal.contentservice.repository.ReviewRepository;
 import com.personal.contentservice.service.ReviewService;
+import com.personal.contentservice.type.ReactionType;
 import com.personal.contentservice.util.UserAuthenticationUtils;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -27,6 +35,9 @@ public class ReviewServiceImpl implements ReviewService {
 
   private final ContentRepository contentRepository;
   private final ReviewRepository reviewRepository;
+  private final ReviewReactionRepository reviewReactionRepository;
+  private final ReviewReportRepository reviewReportRepository;
+  private final LockService lockService;
 
   @Override
   public String addReview(Authentication authentication, ReviewAddDto request) {
@@ -45,7 +56,7 @@ public class ReviewServiceImpl implements ReviewService {
         .build();
 
     reviewRepository.save(review);
-    calculateAverageRating(content);
+    saveCalculateAverageRating(content);
     return "컨텐츠에 리뷰가 등록되었습니다.";
   }
 
@@ -66,7 +77,7 @@ public class ReviewServiceImpl implements ReviewService {
     }
 
     reviewRepository.save(review);
-    calculateAverageRating(content);
+    saveCalculateAverageRating(content);
     return "리뷰가 수정되었습니다.";
   }
 
@@ -78,12 +89,81 @@ public class ReviewServiceImpl implements ReviewService {
     Review review = reviewRepository.findByUserAndContent(user, content)
         .orElseThrow(() -> new CustomException(REVIEW_NOT_FOUND));
 
-    reviewRepository.delete(review);
-    calculateAverageRating(content);
-    return "리뷰가 삭제되었습니다.";
+    String lockKey = "review_lock:" + review.getId();
+
+    try {
+      lockService.lock(lockKey);
+
+      reviewRepository.delete(review);
+      saveCalculateAverageRating(content);
+      return "리뷰가 삭제되었습니다.";
+    } finally {
+      lockService.unlock(lockKey);
+    }
   }
 
-  private Content getContentByIdAndMediaType(ContentKey contentKey) {
+  @Override
+  public String reactReview(Authentication authentication, ReviewReactionDto request) {
+    User user = UserAuthenticationUtils.getUser(authentication);
+    Review review = reviewRepository.findById(request.getReviewId())
+        .orElseThrow(() -> new CustomException(REVIEW_NOT_FOUND));
+
+    ReviewReaction reaction = reviewReactionRepository.findByUserAndReview(user, review);
+    ReactionType reactionType = request.getReactionType();
+    if (reaction != null) {
+      reviewReactionRepository.delete(reaction);
+      if (!reaction.getReactionType().equals(reactionType)) {
+        saveReviewReaction(user, review, reactionType);
+      }
+      return getReactionMessage(reaction.getReactionType(), reactionType, true);
+    }
+
+    saveReviewReaction(user, review, reactionType);
+    return getReactionMessage(reactionType, reactionType, false);
+  }
+
+  @Override
+  public String reportReview(Authentication authentication, ReviewReportDto request) {
+    User user = UserAuthenticationUtils.getUser(authentication);
+    Review review = reviewRepository.findById(request.getReviewId())
+        .orElseThrow(() -> new CustomException(REVIEW_NOT_FOUND));
+
+    if (reviewReportRepository.existsByUserAndReview(user, review)) {
+      throw new CustomException(ALREADY_REPORTED_REVIEW);
+    }
+
+    ReviewReport report = ReviewReport.builder()
+        .user(user)
+        .review(review)
+        .reason(request.getReason())
+        .build();
+
+    reviewReportRepository.save(report);
+    return "리뷰를 신고했습니다.";
+  }
+
+  private void saveReviewReaction(User user, Review review, ReactionType reactionType) {
+    ReviewReaction reaction = ReviewReaction.builder()
+        .user(user)
+        .review(review)
+        .reactionType(reactionType)
+        .build();
+    reviewReactionRepository.save(reaction);
+  }
+
+  private String getReactionMessage(
+      ReactionType previousType, ReactionType currentType, boolean isCancel
+  ) {
+    if (isCancel && previousType.equals(currentType)) {
+      String typeName = previousType.equals(ReactionType.LIKE) ? "추천" : "비추천";
+      return String.format("리뷰 %s을 취소했습니다.", typeName);
+    } else {
+      String typeName = currentType.equals(ReactionType.LIKE) ? "추천" : "비추천";
+      return String.format("리뷰를 %s했습니다.", typeName);
+    }
+  }
+
+  public Content getContentByIdAndMediaType(ContentKey contentKey) {
     long contentId = contentKey.getId();
     String mediaType = contentKey.getMediaType();
     Content content =
@@ -96,20 +176,11 @@ public class ReviewServiceImpl implements ReviewService {
     return content;
   }
 
-  private void calculateAverageRating(Content content) {
-    List<Review> reviews = reviewRepository.findAllByContent(content);
+  private void saveCalculateAverageRating(Content content) {
+    double averageRating = reviewRepository.calculateAverageRatingByContent(content);
 
-    if (reviews.isEmpty()) {
-      content.setAverageRating(0.0);
-    } else {
-      double totalRating = 0.0;
-      for (Review review : reviews) {
-        totalRating += review.getRating();
-      }
-      double averageRating = totalRating / reviews.size();
-      content.setAverageRating(averageRating);
-      contentRepository.save(content);
-    }
+    content.setAverageRating(averageRating);
+    contentRepository.save(content);
   }
 
 }

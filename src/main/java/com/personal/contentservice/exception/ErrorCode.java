@@ -24,7 +24,8 @@ public enum ErrorCode {
   CONTENT_NOT_FOUND("해당 컨텐츠가 존재하지 않습니다.", BAD_REQUEST),
   CONTENT_NOT_IN_WISHLIST("해당 컨텐츠가 위시리스트에 존재하지 않습니다.", BAD_REQUEST),
   REVIEW_ALREADY_EXISTS("이미 작성된 리뷰가 있습니다.", BAD_REQUEST),
-  REVIEW_NOT_FOUND("해당 리뷰를 찾을 수 없습니다.", BAD_REQUEST)
+  REVIEW_NOT_FOUND("해당 리뷰를 찾을 수 없습니다.", BAD_REQUEST),
+  ALREADY_REPORTED_REVIEW("이미 해당 리뷰를 신고했습니다.", BAD_REQUEST)
   ;
 
   private final String description;
