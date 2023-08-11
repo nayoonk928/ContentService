@@ -12,11 +12,11 @@ import com.personal.contentservice.dto.review.ReviewAddDto;
 import com.personal.contentservice.dto.review.ReviewDeleteDto;
 import com.personal.contentservice.dto.review.ReviewUpdateDto;
 import com.personal.contentservice.exception.CustomException;
+import com.personal.contentservice.lock.LockService;
 import com.personal.contentservice.repository.ContentRepository;
 import com.personal.contentservice.repository.ReviewRepository;
 import com.personal.contentservice.service.ReviewService;
 import com.personal.contentservice.util.UserAuthenticationUtils;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -27,6 +27,7 @@ public class ReviewServiceImpl implements ReviewService {
 
   private final ContentRepository contentRepository;
   private final ReviewRepository reviewRepository;
+  private final LockService lockService;
 
   @Override
   public String addReview(Authentication authentication, ReviewAddDto request) {
@@ -45,7 +46,7 @@ public class ReviewServiceImpl implements ReviewService {
         .build();
 
     reviewRepository.save(review);
-    calculateAverageRating(content);
+    saveCalculateAverageRating(content);
     return "컨텐츠에 리뷰가 등록되었습니다.";
   }
 
@@ -57,17 +58,25 @@ public class ReviewServiceImpl implements ReviewService {
     Review review = reviewRepository.findByUserAndContent(user, content)
         .orElseThrow(() -> new CustomException(REVIEW_NOT_FOUND));
 
-    if (request.getComment() != null) {
+    boolean isUpdated = false;
+
+    if (!request.getComment().equals(review.getComment())) {
       review.setComment(request.getComment());
+      isUpdated = true;
     }
 
-    if (request.getRating() != null) {
+    if (!request.getRating().equals(review.getRating())) {
       review.setRating(request.getRating());
+      isUpdated = true;
     }
 
-    reviewRepository.save(review);
-    calculateAverageRating(content);
-    return "리뷰가 수정되었습니다.";
+    if (isUpdated) {
+      reviewRepository.save(review);
+      saveCalculateAverageRating(content);
+      return "리뷰가 수정되었습니다.";
+    } else {
+      return "변경된 내용이 없어 리뷰를 수정하지 않았습니다.";
+    }
   }
 
   @Override
@@ -78,9 +87,17 @@ public class ReviewServiceImpl implements ReviewService {
     Review review = reviewRepository.findByUserAndContent(user, content)
         .orElseThrow(() -> new CustomException(REVIEW_NOT_FOUND));
 
-    reviewRepository.delete(review);
-    calculateAverageRating(content);
-    return "리뷰가 삭제되었습니다.";
+    String lockKey = "review_lock:" + review.getId();
+
+    try {
+      lockService.lock(lockKey);
+
+      reviewRepository.delete(review);
+      saveCalculateAverageRating(content);
+      return "리뷰가 삭제되었습니다.";
+    } finally {
+      lockService.unlock(lockKey);
+    }
   }
 
   private Content getContentByIdAndMediaType(ContentKey contentKey) {
@@ -96,20 +113,11 @@ public class ReviewServiceImpl implements ReviewService {
     return content;
   }
 
-  private void calculateAverageRating(Content content) {
-    List<Review> reviews = reviewRepository.findAllByContent(content);
+  public void saveCalculateAverageRating(Content content) {
+    double averageRating = reviewRepository.calculateAverageRatingByContent(content);
 
-    if (reviews.isEmpty()) {
-      content.setAverageRating(0.0);
-    } else {
-      double totalRating = 0.0;
-      for (Review review : reviews) {
-        totalRating += review.getRating();
-      }
-      double averageRating = totalRating / reviews.size();
-      content.setAverageRating(averageRating);
-      contentRepository.save(content);
-    }
+    content.setAverageRating(averageRating);
+    contentRepository.save(content);
   }
 
 }
