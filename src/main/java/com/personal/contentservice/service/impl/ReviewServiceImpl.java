@@ -163,7 +163,7 @@ public class ReviewServiceImpl implements ReviewService {
     }
   }
 
-  public Content getContentByIdAndMediaType(ContentKey contentKey) {
+  private Content getContentByIdAndMediaType(ContentKey contentKey) {
     long contentId = contentKey.getId();
     String mediaType = contentKey.getMediaType();
     Content content =
