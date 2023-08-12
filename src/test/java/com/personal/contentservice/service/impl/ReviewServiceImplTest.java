@@ -1,7 +1,9 @@
 package com.personal.contentservice.service.impl;
 
+import static com.personal.contentservice.exception.ErrorCode.ALREADY_REPORTED_REVIEW;
 import static com.personal.contentservice.exception.ErrorCode.REVIEW_ALREADY_EXISTS;
 import static com.personal.contentservice.exception.ErrorCode.REVIEW_NOT_FOUND;
+import static com.personal.contentservice.type.ReactionType.LIKE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
@@ -11,11 +13,16 @@ import com.personal.contentservice.domain.Content;
 import com.personal.contentservice.domain.ContentKey;
 import com.personal.contentservice.domain.Review;
 import com.personal.contentservice.domain.User;
+import com.personal.contentservice.dto.ReviewReactionDto;
+import com.personal.contentservice.dto.ReviewReportDto;
 import com.personal.contentservice.dto.review.ReviewAddDto;
 import com.personal.contentservice.dto.review.ReviewDeleteDto;
 import com.personal.contentservice.dto.review.ReviewUpdateDto;
 import com.personal.contentservice.exception.CustomException;
+import com.personal.contentservice.lock.LockService;
 import com.personal.contentservice.repository.ContentRepository;
+import com.personal.contentservice.repository.ReviewReactionRepository;
+import com.personal.contentservice.repository.ReviewReportRepository;
 import com.personal.contentservice.repository.ReviewRepository;
 import com.personal.contentservice.security.principal.PrincipalDetails;
 import java.util.Optional;
@@ -35,31 +42,57 @@ class ReviewServiceImplTest {
   @Mock
   private ContentRepository contentRepository;
 
+  @Mock
+  private ReviewReactionRepository reviewReactionRepository;
+
+  @Mock
+  private ReviewReportRepository reviewReportRepository;
+
   @InjectMocks
   private ReviewServiceImpl reviewService;
 
   @Mock
   private Authentication authentication;
 
+  @Mock
+  private LockService lockService;
+
   private PrincipalDetails principalDetails;
   private User testUser;
+  private User testUser2;
   private Content testContent;
+  private Review testReview;
 
   @BeforeEach
   void setUp() {
     reviewRepository = mock(ReviewRepository.class);
     contentRepository = mock(ContentRepository.class);
-    reviewService = new ReviewServiceImpl(contentRepository, reviewRepository);
+    reviewReactionRepository = mock(ReviewReactionRepository.class);
+    reviewReportRepository = mock(ReviewReportRepository.class);
+    lockService = mock(LockService.class);
+    reviewService = new ReviewServiceImpl(
+        contentRepository, reviewRepository, reviewReactionRepository,
+        reviewReportRepository, lockService);
 
     testUser = new User();
     testUser.setId(1L);
     testUser.setEmail("test@example.com");
+
+    testUser2 = new User();
+    testUser2.setId(2L);
+    testUser2.setEmail("test2@example.com");
 
     testContent = new Content();
     testContent.setContentKey(new ContentKey());
     testContent.getContentKey().setIdAndMediaType(1L, "movie");
     testContent.setTitle("Test Content");
     testContent.setContentYear(2023);
+
+    testReview = new Review();
+    testReview.setId(1L);
+    testReview.setComment("재밌어요");
+    testReview.setRating(5.0);
+    testReview.setUser(testUser2);
 
     principalDetails = new PrincipalDetails(testUser);
 
@@ -213,6 +246,79 @@ class ReviewServiceImplTest {
     CustomException exception = assertThrows(CustomException.class,
         () -> reviewService.deleteReview(authentication, request));
     assertEquals(REVIEW_NOT_FOUND, exception.getErrorCode());
+  }
+
+  @Test
+  @DisplayName("리뷰반응_성공")
+  void testReactReview_Success() {
+    //given
+    ReviewReactionDto request = ReviewReactionDto.builder()
+        .reviewId(1L)
+        .reactionType(LIKE)
+        .build();
+
+    principalDetails = new PrincipalDetails(testUser2);
+
+    authentication = new UsernamePasswordAuthenticationToken(
+        principalDetails, "", principalDetails.getAuthorities());
+
+    //when
+    when(reviewRepository.findById(testReview.getId())).thenReturn(Optional.ofNullable(testReview));
+    when(reviewReactionRepository.findByUserAndReview(testUser2, testReview))
+        .thenReturn(null);
+
+    //then
+    assertEquals(reviewService.reactReview(authentication, request),
+        "리뷰를 추천했습니다.");
+  }
+
+  @Test
+  @DisplayName("리뷰신고_성공")
+  void testReportReview_Success() {
+    //given
+    ReviewReportDto request = ReviewReportDto.builder()
+        .reviewId(1L)
+        .reason("욕설 사용")
+        .build();
+
+    principalDetails = new PrincipalDetails(testUser2);
+
+    authentication = new UsernamePasswordAuthenticationToken(
+        principalDetails, "", principalDetails.getAuthorities());
+
+    //when
+    when(reviewRepository.findById(testReview.getId())).thenReturn(Optional.ofNullable(testReview));
+    when(reviewReportRepository.existsByUserAndReview(testUser2, testReview))
+        .thenReturn(false);
+
+    //then
+    assertEquals(reviewService.reportReview(authentication, request),
+        "리뷰를 신고했습니다.");
+  }
+
+  @Test
+  @DisplayName("리뷰신고_실패_이미신고한리뷰")
+  void testReportReview_Fail() {
+    //given
+    ReviewReportDto request = ReviewReportDto.builder()
+        .reviewId(1L)
+        .reason("욕설 사용")
+        .build();
+
+    principalDetails = new PrincipalDetails(testUser2);
+
+    authentication = new UsernamePasswordAuthenticationToken(
+        principalDetails, "", principalDetails.getAuthorities());
+
+    //when
+    when(reviewRepository.findById(testReview.getId())).thenReturn(Optional.ofNullable(testReview));
+    when(reviewReportRepository.existsByUserAndReview(testUser2, testReview))
+        .thenThrow(new CustomException(ALREADY_REPORTED_REVIEW));
+
+    //then
+    CustomException exception = assertThrows(CustomException.class,
+        () -> reviewService.reportReview(authentication, request));
+    assertEquals(ALREADY_REPORTED_REVIEW, exception.getErrorCode());
   }
 
 }

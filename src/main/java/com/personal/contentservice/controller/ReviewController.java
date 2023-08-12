@@ -1,5 +1,7 @@
 package com.personal.contentservice.controller;
 
+import com.personal.contentservice.dto.ReviewReactionDto;
+import com.personal.contentservice.dto.ReviewReportDto;
 import com.personal.contentservice.dto.review.ReviewAddDto;
 import com.personal.contentservice.dto.review.ReviewDeleteDto;
 import com.personal.contentservice.dto.review.ReviewUpdateDto;
@@ -44,6 +46,22 @@ public class ReviewController {
       @Valid @RequestBody ReviewDeleteDto request
   ) {
     return ResponseEntity.ok().body(reviewService.deleteReview(authentication, request));
+  }
+
+  @PostMapping("/reaction")
+  public ResponseEntity<String> reactReview(
+      Authentication authentication,
+      @Valid @RequestBody ReviewReactionDto request
+  ) {
+    return ResponseEntity.ok().body(reviewService.reactReview(authentication, request));
+  }
+
+  @PostMapping("/report")
+  public ResponseEntity<String> reportReview(
+      Authentication authentication,
+      @Valid @RequestBody ReviewReportDto request
+  ) {
+    return ResponseEntity.ok().body(reviewService.reportReview(authentication, request));
   }
 
 }
