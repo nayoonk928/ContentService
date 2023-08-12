@@ -20,6 +20,6 @@ public class ReviewAddDto {
   private String comment;
 
   @NotNull
-  private Double rating;
+  private double rating;
 
 }

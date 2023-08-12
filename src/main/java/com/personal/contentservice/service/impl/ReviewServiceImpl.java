@@ -68,17 +68,25 @@ public class ReviewServiceImpl implements ReviewService {
     Review review = reviewRepository.findByUserAndContent(user, content)
         .orElseThrow(() -> new CustomException(REVIEW_NOT_FOUND));
 
-    if (request.getComment() != null) {
+    boolean isUpdated = false;
+
+    if (!request.getComment().equals(review.getComment())) {
       review.setComment(request.getComment());
+      isUpdated = true;
     }
 
-    if (request.getRating() != null) {
+    if (!request.getRating().equals(review.getRating())) {
       review.setRating(request.getRating());
+      isUpdated = true;
     }
 
-    reviewRepository.save(review);
-    saveCalculateAverageRating(content);
-    return "리뷰가 수정되었습니다.";
+    if (isUpdated) {
+      reviewRepository.save(review);
+      saveCalculateAverageRating(content);
+      return "리뷰가 수정되었습니다.";
+    } else {
+      return "변경된 내용이 없어 리뷰를 수정하지 않았습니다.";
+    }
   }
 
   @Override
@@ -175,6 +183,7 @@ public class ReviewServiceImpl implements ReviewService {
 
     return content;
   }
+
 
   private void saveCalculateAverageRating(Content content) {
     double averageRating = reviewRepository.calculateAverageRatingByContent(content);
