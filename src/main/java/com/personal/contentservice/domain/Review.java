@@ -36,4 +36,13 @@ public class Review extends BaseEntity {
   @Column(nullable = false)
   private double rating;
 
+  @Column(nullable = false)
+  private int likeCount;
+
+  @Column(nullable = false)
+  private int dislikeCount;
+
+  @Column(nullable = false)
+  private int reportedCount;
+
 }

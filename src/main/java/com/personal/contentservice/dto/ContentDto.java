@@ -1,6 +1,8 @@
 package com.personal.contentservice.dto;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.personal.contentservice.dto.detail.ContentDetailDto;
+import com.personal.contentservice.dto.detail.GenreDto;
+import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,17 +15,12 @@ import lombok.NoArgsConstructor;
 public class ContentDto {
 
   private long id;
-
   private String mediaType;
-
   private String title;
-
   private int contentYear;
-
-  private JsonNode genres;
-
+  private GenreDto genres;
   private double averageRating;
-
-  private JsonNode details;
+  private ContentDetailDto details;
+  private List<ReviewDto> reviews;
 
 }

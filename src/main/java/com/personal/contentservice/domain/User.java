@@ -1,5 +1,6 @@
 package com.personal.contentservice.domain;
 
+import com.personal.contentservice.type.UserStatus;
 import com.personal.contentservice.type.UserType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -30,5 +31,8 @@ public class User extends BaseEntity {
 
   @Enumerated(EnumType.STRING)
   private UserType userType;
+
+  @Enumerated(EnumType.STRING)
+  private UserStatus userStatus;
 
 }

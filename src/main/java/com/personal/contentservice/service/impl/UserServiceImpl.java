@@ -2,8 +2,10 @@ package com.personal.contentservice.service.impl;
 
 import static com.personal.contentservice.exception.ErrorCode.ALREADY_EXISTS_EMAIL;
 import static com.personal.contentservice.exception.ErrorCode.ALREADY_EXISTS_NICKNAME;
+import static com.personal.contentservice.exception.ErrorCode.ALREADY_WITHDRAWN;
 import static com.personal.contentservice.exception.ErrorCode.INCORRECT_EMAIL_OR_PASSWORD;
 import static com.personal.contentservice.exception.ErrorCode.SAME_CURRENT_PASSWORD;
+import static com.personal.contentservice.type.UserStatus.WITHDRAW;
 
 import com.personal.contentservice.domain.User;
 import com.personal.contentservice.dto.SignInDto;
@@ -77,6 +79,10 @@ public class UserServiceImpl implements UserService {
 
       User authenticatedUser = principalDetails.getUser();
 
+      if (authenticatedUser.getUserStatus() == WITHDRAW) {
+        throw new CustomException(ALREADY_WITHDRAWN);
+      }
+
       return jwtService.generateToken(authenticatedUser);
     } else {
       throw new CustomException(INCORRECT_EMAIL_OR_PASSWORD);
@@ -88,7 +94,8 @@ public class UserServiceImpl implements UserService {
   @Transactional
   public void deleteUser(Authentication authentication) {
     User user = UserAuthenticationUtils.getUser(authentication);
-    userRepository.delete(user);
+    user.setUserStatus(WITHDRAW);
+    userRepository.save(user);
   }
 
   // 회원 정보 수정

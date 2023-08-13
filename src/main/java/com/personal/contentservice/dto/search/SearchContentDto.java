@@ -18,5 +18,6 @@ public class SearchContentDto {
   private String mediaType;
   private List<String> genreNames;
   private String date;
+  private double averageRating;
 
 }
