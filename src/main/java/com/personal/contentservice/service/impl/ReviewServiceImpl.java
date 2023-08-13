@@ -118,15 +118,21 @@ public class ReviewServiceImpl implements ReviewService {
 
     ReviewReaction reaction = reviewReactionRepository.findByUserAndReview(user, review);
     ReactionType reactionType = request.getReactionType();
+
     if (reaction != null) {
+      saveDecrementReactionCount(review, reaction.getReactionType());
       reviewReactionRepository.delete(reaction);
+
       if (!reaction.getReactionType().equals(reactionType)) {
+        saveIncrementReactionCount(review, reactionType);
         saveReviewReaction(user, review, reactionType);
       }
       return getReactionMessage(reaction.getReactionType(), reactionType, true);
     }
 
+    saveIncrementReactionCount(review, reactionType);
     saveReviewReaction(user, review, reactionType);
+
     return getReactionMessage(reactionType, reactionType, false);
   }
 
@@ -148,6 +154,26 @@ public class ReviewServiceImpl implements ReviewService {
 
     reviewReportRepository.save(report);
     return "리뷰를 신고했습니다.";
+  }
+
+  private void saveIncrementReactionCount(Review review, ReactionType reactionType) {
+    if (reactionType.equals(ReactionType.LIKE)) {
+      review.setLikeCount(review.getLikeCount() + 1);
+      reviewRepository.save(review);
+    } else {
+      review.setDislikeCount(review.getDislikeCount() + 1);
+      reviewRepository.save(review);
+    }
+  }
+
+  private void saveDecrementReactionCount(Review review, ReactionType reactionType) {
+    if (reactionType.equals(ReactionType.LIKE)) {
+      review.setLikeCount(review.getLikeCount() - 1);
+      reviewRepository.save(review);
+    } else {
+      review.setDislikeCount(review.getDislikeCount() - 1);
+      reviewRepository.save(review);
+    }
   }
 
   private void saveReviewReaction(User user, Review review, ReactionType reactionType) {
@@ -186,7 +212,11 @@ public class ReviewServiceImpl implements ReviewService {
 
 
   private void saveCalculateAverageRating(Content content) {
-    double averageRating = reviewRepository.calculateAverageRatingByContent(content);
+    Double averageRating = reviewRepository.calculateAverageRatingByContent(content);
+
+    if (averageRating == null) {
+      averageRating = 0.0;
+    }
 
     content.setAverageRating(averageRating);
     contentRepository.save(content);

@@ -3,19 +3,20 @@ package com.personal.contentservice.service.impl;
 import static com.personal.contentservice.exception.ErrorCode.INVALID_MEDIA_TYPE;
 import static com.personal.contentservice.exception.ErrorCode.NO_RESULTS_FOUND;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.personal.contentservice.config.TmdbApiClient;
 import com.personal.contentservice.domain.Content;
 import com.personal.contentservice.domain.ContentKey;
 import com.personal.contentservice.domain.Genre;
+import com.personal.contentservice.domain.Review;
+import com.personal.contentservice.domain.User;
 import com.personal.contentservice.dto.ContentDto;
+import com.personal.contentservice.dto.ReviewDto;
+import com.personal.contentservice.dto.UserDto;
 import com.personal.contentservice.dto.detail.CastDto;
 import com.personal.contentservice.dto.detail.ContentDetailDto;
 import com.personal.contentservice.dto.detail.CrewDto;
-import com.personal.contentservice.dto.detail.MovieDetailDto;
+import com.personal.contentservice.dto.detail.GenreDto;
 import com.personal.contentservice.dto.detail.ProductionCountryDto;
-import com.personal.contentservice.dto.detail.TvDetailDto;
 import com.personal.contentservice.dto.detail.api.MovieDetailApiResponse;
 import com.personal.contentservice.dto.detail.api.TvDetailApiResponse;
 import com.personal.contentservice.exception.CustomException;
@@ -44,7 +45,6 @@ public class ContentDetailServiceImpl implements ContentDetailService {
     Content dbContent =
         contentRepository.findByContentKey_IdAndContentKey_MediaType(id, mediaType);
 
-
     if (dbContent != null) {
       return convertContentToDto(dbContent);
     } else {
@@ -69,18 +69,14 @@ public class ContentDetailServiceImpl implements ContentDetailService {
         content.setContentKey(new ContentKey());
         content.getContentKey().setIdAndMediaType(id, mediaType);
 
-        ObjectMapper objectMapper = new ObjectMapper();
-        JsonNode detailsJson = objectMapper.valueToTree(contentDetailDto);
-
         content.setTitle(contentDetailDto.getTitle());
-        content.setGenres(objectMapper.valueToTree(contentDetailDto.getGenres()));
+        content.setGenres(contentDetailDto.getGenres());
         content.setContentYear(contentDetailDto.getContentYear());
-        content.setDetails(detailsJson);
+        content.setDetails(contentDetailDto);
 
         contentRepository.save(content);
 
-        ContentDto contentDto = convertContentToDto(content);
-        return contentDto;
+        return convertContentToDto(content);
       } else {
         throw new CustomException(NO_RESULTS_FOUND);
       }
@@ -88,6 +84,10 @@ public class ContentDetailServiceImpl implements ContentDetailService {
   }
 
   private ContentDto convertContentToDto(Content content) {
+    List<ReviewDto> reviewDtos = content.getReviews().stream()
+        .map(this::convertReviewToDto)
+        .collect(Collectors.toList());
+
     return ContentDto.builder()
         .id(content.getContentKey().getId())
         .mediaType(content.getContentKey().getMediaType())
@@ -96,6 +96,27 @@ public class ContentDetailServiceImpl implements ContentDetailService {
         .averageRating(content.getAverageRating())
         .genres(content.getGenres())
         .details(content.getDetails())
+        .reviews(reviewDtos)
+        .build();
+  }
+
+  private ReviewDto convertReviewToDto(Review review) {
+    UserDto userDto = convertUserToDto(review.getUser());
+
+    return ReviewDto.builder()
+        .id(review.getId())
+        .user(userDto)
+        .comment(review.getComment())
+        .rating(review.getRating())
+        .likeCount(review.getLikeCount())
+        .dislikeCount(review.getDislikeCount())
+        .build();
+  }
+
+  private UserDto convertUserToDto(User user) {
+    return UserDto.builder()
+        .id(user.getId())
+        .nickname(user.getNickname())
         .build();
   }
 
@@ -109,7 +130,7 @@ public class ContentDetailServiceImpl implements ContentDetailService {
 
     String releaseDate = response.getReleaseDate();
 
-    MovieDetailDto dto = MovieDetailDto.builder()
+    ContentDetailDto dto = ContentDetailDto.builder()
         .originalTitle(response.getOriginalTitle())
         .originalLanguage(response.getOriginalLanguage())
         .tagline(response.getTagline())
@@ -141,7 +162,7 @@ public class ContentDetailServiceImpl implements ContentDetailService {
 
     String firstAirDate = response.getFirstAirDate();
 
-    TvDetailDto dto = TvDetailDto.builder()
+    ContentDetailDto dto = ContentDetailDto.builder()
         .originalTitle(response.getOriginalName())
         .originalLanguage(response.getOriginalLanguage())
         .overview(response.getOverview())
@@ -176,10 +197,10 @@ public class ContentDetailServiceImpl implements ContentDetailService {
     return 0;
   }
 
-  private List<String> extractGenreNames(List<Genre> genres) {
-    return genres.stream()
-        .map(Genre::getName)
-        .collect(Collectors.toList());
+  private GenreDto extractGenreNames(List<Genre> genres) {
+    return GenreDto.builder()
+        .names(genres.stream().map(Genre::getName)
+        .collect(Collectors.toList())).build();
   }
 
   private List<String> getActorsInfo(List<CastDto> cast) {

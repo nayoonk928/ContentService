@@ -6,6 +6,7 @@ import com.personal.contentservice.dto.SignUpDto;
 import com.personal.contentservice.dto.UserUpdateDto;
 import com.personal.contentservice.service.UserService;
 import jakarta.validation.Valid;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -29,7 +30,7 @@ public class UserController {
   public ResponseEntity<SignUpDto.Response> userSignUp(
       @Valid @RequestBody SignUpDto.Request request
   ) {
-    return ResponseEntity.ok().body(userService.signUp(request));
+    return ResponseEntity.ok(userService.signUp(request));
   }
 
   // 로그인
@@ -37,7 +38,7 @@ public class UserController {
   public ResponseEntity<String> userSignIn(
       @Valid @RequestBody SignInDto.Request request
   ) {
-    return ResponseEntity.ok().body(userService.signIn(request));
+    return ResponseEntity.ok(userService.signIn(request));
   }
 
   // 회원 탈퇴

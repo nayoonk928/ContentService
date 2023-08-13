@@ -37,7 +37,7 @@ public class ContentSearchServiceImpl implements ContentSearchService {
 
   @Override
   @Transactional
-  @Cacheable(value = "contentSearch", key = "{#query, #page}", cacheManager = "testCacheManager")
+  @Cacheable(value = "contentSearch", key = "{#query, #page}", cacheManager = "cacheManager")
   public List<SearchContentDto> searchContents(String query, int page) throws Exception {
     List<SearchContentDto> contentDtos = new ArrayList<>();
     ApiSearchResponse apiSearchResponse = tmdbApiClient.searchContents(query, page);

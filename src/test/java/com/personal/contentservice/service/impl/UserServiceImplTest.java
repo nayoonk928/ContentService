@@ -132,7 +132,7 @@ class UserServiceImplTest {
     when(jwtService.generateToken(any(User.class))).thenReturn(token);
 
     //then
-    String result = userService.signIn(request);
+    String result = String.valueOf(userService.signIn(request));
     assertEquals(token, result);
   }
 

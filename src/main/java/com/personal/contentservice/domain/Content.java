@@ -1,7 +1,10 @@
 package com.personal.contentservice.domain;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.personal.contentservice.util.JsonNodeConverter;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.personal.contentservice.dto.detail.ContentDetailDto;
+import com.personal.contentservice.dto.detail.GenreDto;
+import com.personal.contentservice.util.ContentDetailConverter;
+import com.personal.contentservice.util.GenreListConverter;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.EmbeddedId;
@@ -17,7 +20,6 @@ import lombok.Data;
 @Table(name = "content")
 public class Content {
 
-
   @OneToMany(mappedBy = "content")
   private List<Review> reviews = new ArrayList<>();
 
@@ -30,14 +32,15 @@ public class Content {
   @Column
   private int contentYear;
 
-  @Convert(converter = JsonNodeConverter.class)
+  @Convert(converter = GenreListConverter.class)
   @Column(columnDefinition = "json")
-  private JsonNode genres;
+  private GenreDto genres;
 
+  @Column
   private double averageRating;
 
-  @Convert(converter = JsonNodeConverter.class)
+  @Convert(converter = ContentDetailConverter.class)
   @Column(columnDefinition = "json")
-  private JsonNode details;
+  private ContentDetailDto details;
 
 }
