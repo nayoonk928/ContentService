@@ -1,4 +1,4 @@
-package com.personal.contentservice.dto;
+package com.personal.contentservice.dto.user;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;

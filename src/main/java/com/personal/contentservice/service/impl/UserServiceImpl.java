@@ -5,12 +5,13 @@ import static com.personal.contentservice.exception.ErrorCode.ALREADY_EXISTS_NIC
 import static com.personal.contentservice.exception.ErrorCode.ALREADY_WITHDRAWN;
 import static com.personal.contentservice.exception.ErrorCode.INCORRECT_EMAIL_OR_PASSWORD;
 import static com.personal.contentservice.exception.ErrorCode.SAME_CURRENT_PASSWORD;
+import static com.personal.contentservice.type.UserStatus.JOIN;
 import static com.personal.contentservice.type.UserStatus.WITHDRAW;
 
 import com.personal.contentservice.domain.User;
-import com.personal.contentservice.dto.SignInDto;
-import com.personal.contentservice.dto.SignUpDto;
-import com.personal.contentservice.dto.UserUpdateDto;
+import com.personal.contentservice.dto.user.SignInDto;
+import com.personal.contentservice.dto.user.SignUpDto;
+import com.personal.contentservice.dto.user.UserUpdateDto;
 import com.personal.contentservice.exception.CustomException;
 import com.personal.contentservice.repository.UserRepository;
 import com.personal.contentservice.security.jwt.JwtService;
@@ -55,7 +56,7 @@ public class UserServiceImpl implements UserService {
         .email(email)
         .nickname(nickname)
         .password(encryptPassword)
-        .userType(request.getUserType())
+        .userStatus(JOIN)
         .build();
 
     userRepository.save(user);
@@ -133,7 +134,9 @@ public class UserServiceImpl implements UserService {
     }
 
     userRepository.save(user);
-    return UserUpdateDto.Response.from(user);
+    String newToken = jwtService.generateToken(user);
+
+    return UserUpdateDto.Response.from(user, newToken);
   }
 
 }

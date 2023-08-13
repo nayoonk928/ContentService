@@ -1,6 +1,5 @@
 package com.personal.contentservice.domain;
 
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.personal.contentservice.dto.detail.ContentDetailDto;
 import com.personal.contentservice.dto.detail.GenreDto;
 import com.personal.contentservice.util.ContentDetailConverter;

@@ -1,7 +1,7 @@
 package com.personal.contentservice.controller;
 
-import com.personal.contentservice.dto.ReviewReactionDto;
-import com.personal.contentservice.dto.ReviewReportDto;
+import com.personal.contentservice.dto.review.ReviewReactionDto;
+import com.personal.contentservice.dto.review.ReviewReportDto;
 import com.personal.contentservice.dto.review.ReviewAddDto;
 import com.personal.contentservice.dto.review.ReviewDeleteDto;
 import com.personal.contentservice.dto.review.ReviewUpdateDto;

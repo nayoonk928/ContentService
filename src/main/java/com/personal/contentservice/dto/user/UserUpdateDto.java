@@ -1,8 +1,7 @@
-package com.personal.contentservice.dto;
+package com.personal.contentservice.dto.user;
 
 import com.personal.contentservice.aop.UserLockInterface;
 import com.personal.contentservice.domain.User;
-import com.personal.contentservice.type.UserType;
 import com.personal.contentservice.util.EmailValidation;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -40,14 +39,14 @@ public class UserUpdateDto {
     private String email;
     private String nickname;
     private LocalDateTime lastModifiedAt;
-    private UserType userType;
+    private String newToken;
 
-    public static Response from(User user) {
+    public static Response from(User user, String newToken) {
       return Response.builder()
           .email(user.getEmail())
           .nickname(user.getNickname())
           .lastModifiedAt(user.getLastModifiedAt())
-          .userType(user.getUserType())
+          .newToken(newToken)
           .build();
     }
   }

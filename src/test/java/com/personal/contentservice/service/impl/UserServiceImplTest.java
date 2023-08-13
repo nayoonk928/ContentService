@@ -4,7 +4,6 @@ import static com.personal.contentservice.exception.ErrorCode.ALREADY_EXISTS_EMA
 import static com.personal.contentservice.exception.ErrorCode.ALREADY_EXISTS_NICKNAME;
 import static com.personal.contentservice.exception.ErrorCode.INCORRECT_EMAIL_OR_PASSWORD;
 import static com.personal.contentservice.exception.ErrorCode.SAME_CURRENT_PASSWORD;
-import static com.personal.contentservice.exception.ErrorCode.USER_NOT_FOUND;
 import static org.hibernate.validator.internal.util.Contracts.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -16,9 +15,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.personal.contentservice.domain.User;
-import com.personal.contentservice.dto.SignInDto;
-import com.personal.contentservice.dto.SignUpDto;
-import com.personal.contentservice.dto.UserUpdateDto;
+import com.personal.contentservice.dto.user.SignInDto;
+import com.personal.contentservice.dto.user.SignUpDto;
+import com.personal.contentservice.dto.user.UserUpdateDto;
 import com.personal.contentservice.exception.CustomException;
 import com.personal.contentservice.repository.UserRepository;
 import com.personal.contentservice.security.jwt.JwtService;
@@ -57,7 +56,6 @@ class UserServiceImplTest {
         .email("test@example.com")
         .nickname("name")
         .password("test123!!")
-        .userType(UserType.USER)
         .build();
 
     //when
@@ -67,7 +65,6 @@ class UserServiceImplTest {
     assertNotNull(response);
     assertEquals("test@example.com", response.getEmail());
     assertEquals("name", response.getNickname());
-    assertEquals(UserType.USER, response.getUserType());
   }
 
   @Test
@@ -78,7 +75,6 @@ class UserServiceImplTest {
         .email("test@example.com")
         .nickname("name1")
         .password("test123!!")
-        .userType(UserType.USER)
         .build();
 
     when(userRepository.existsByEmail(request.getEmail())).thenReturn(true);
@@ -99,7 +95,6 @@ class UserServiceImplTest {
         .email("test@example.com")
         .nickname("name")
         .password("test123!!")
-        .userType(UserType.USER)
         .build();
     given(userRepository.existsByNickname(request.getNickname())).willReturn(true);
 
@@ -185,7 +180,6 @@ class UserServiceImplTest {
         .email("test@example.com")
         .nickname("name")
         .password("test123!!")
-        .userType(UserType.USER)
         .build();
 
     UserUpdateDto.Request request = UserUpdateDto.Request.builder()
@@ -218,7 +212,6 @@ class UserServiceImplTest {
         .email("test@example.com")
         .nickname("name")
         .password("test123!!")
-        .userType(UserType.USER)
         .build();
 
     UserUpdateDto.Request request = UserUpdateDto.Request.builder()
@@ -248,7 +241,6 @@ class UserServiceImplTest {
         .email("test@example.com")
         .nickname("name")
         .password("test123!!")
-        .userType(UserType.USER)
         .build();
 
     UserUpdateDto.Request request = UserUpdateDto.Request.builder()
@@ -279,7 +271,6 @@ class UserServiceImplTest {
         .email("test@example.com")
         .nickname("name")
         .password(password)
-        .userType(UserType.USER)
         .build();
 
     UserUpdateDto.Request request = UserUpdateDto.Request.builder()
