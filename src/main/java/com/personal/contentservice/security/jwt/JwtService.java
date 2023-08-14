@@ -43,14 +43,12 @@ public class JwtService {
   public String generateToken(User user) {
     Long id = user.getId();
     String email = user.getEmail();
-    String role = user.getUserType().name();
     Date now = new Date();
 
     return JWT.create()
         .withSubject(email)
         .withClaim("id", id)
         .withClaim("email", email)
-        .withClaim("role", role)
         .withIssuedAt(now)
         .withExpiresAt(new Date(now.getTime() + TOKEN_VALID_TIME))
         .sign(getSign());

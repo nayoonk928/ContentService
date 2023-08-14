@@ -1,13 +1,9 @@
-package com.personal.contentservice.dto;
-
-import static com.personal.contentservice.type.UserType.USER;
+package com.personal.contentservice.dto.user;
 
 import com.personal.contentservice.aop.UserLockInterface;
 import com.personal.contentservice.domain.User;
-import com.personal.contentservice.type.UserType;
 import com.personal.contentservice.util.EmailValidation;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
@@ -38,9 +34,6 @@ public class SignUpDto {
         message = "비밀번호는 알파벳, 숫자, 특수문자를 각각 하나 이상 포함하여 6자 이상으로 설정해주세요.")
     private String password;
 
-    @NotNull(message = "회원 유형은 필수 항목 입니다.")
-    @Builder.Default
-    private UserType userType = USER;
   }
 
   @Getter
@@ -51,14 +44,12 @@ public class SignUpDto {
     private String email;
     private String nickname;
     private LocalDateTime createdAt;
-    private UserType userType;
 
     public static Response from(User user) {
       return Response.builder()
           .email(user.getEmail())
           .nickname(user.getNickname())
           .createdAt(user.getCreatedAt())
-          .userType(user.getUserType())
           .build();
     }
   }

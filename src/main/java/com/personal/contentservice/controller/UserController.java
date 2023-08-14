@@ -1,12 +1,11 @@
 package com.personal.contentservice.controller;
 
 import com.personal.contentservice.aop.UserLock;
-import com.personal.contentservice.dto.SignInDto;
-import com.personal.contentservice.dto.SignUpDto;
-import com.personal.contentservice.dto.UserUpdateDto;
+import com.personal.contentservice.dto.user.SignInDto;
+import com.personal.contentservice.dto.user.SignUpDto;
+import com.personal.contentservice.dto.user.UserUpdateDto;
 import com.personal.contentservice.service.UserService;
 import jakarta.validation.Valid;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;

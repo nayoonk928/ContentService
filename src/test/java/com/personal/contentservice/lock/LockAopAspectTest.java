@@ -7,7 +7,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import com.personal.contentservice.dto.SignUpDto;
+import com.personal.contentservice.dto.user.SignUpDto;
 import com.personal.contentservice.exception.CustomException;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.junit.jupiter.api.DisplayName;

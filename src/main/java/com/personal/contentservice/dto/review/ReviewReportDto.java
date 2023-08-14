@@ -1,6 +1,5 @@
-package com.personal.contentservice.dto;
+package com.personal.contentservice.dto.review;
 
-import com.personal.contentservice.type.ReactionType;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,12 +10,12 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ReviewReactionDto {
+public class ReviewReportDto {
+
+  @NotNull
+  private String reason;
 
   @NotNull
   private long reviewId;
-
-  @NotNull
-  private ReactionType reactionType;
 
 }

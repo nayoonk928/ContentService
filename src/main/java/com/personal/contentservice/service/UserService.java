@@ -1,8 +1,8 @@
 package com.personal.contentservice.service;
 
-import com.personal.contentservice.dto.SignInDto;
-import com.personal.contentservice.dto.SignUpDto;
-import com.personal.contentservice.dto.UserUpdateDto;
+import com.personal.contentservice.dto.user.SignInDto;
+import com.personal.contentservice.dto.user.SignUpDto;
+import com.personal.contentservice.dto.user.UserUpdateDto;
 import org.springframework.security.core.Authentication;
 import org.springframework.transaction.annotation.Transactional;
 

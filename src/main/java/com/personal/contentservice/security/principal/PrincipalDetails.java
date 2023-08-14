@@ -6,7 +6,6 @@ import java.util.Collection;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 @Data
@@ -18,7 +17,6 @@ public class PrincipalDetails implements UserDetails {
   @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {
     Collection<GrantedAuthority> authorities = new ArrayList<>();
-    authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getUserType()));
     return authorities;
   }
 

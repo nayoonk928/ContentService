@@ -30,9 +30,6 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-devtools'
     implementation 'org.springframework.boot:spring-boot-starter-cache:3.1.2'
 
-    // Elastic Search
-    implementation 'org.springframework.boot:spring-boot-starter-data-elasticsearch'
-
     // redisson 이라는 redis 를 이용한 분산락을 지원하는 클라이언트
     implementation 'org.redisson:redisson:3.23.1'
 

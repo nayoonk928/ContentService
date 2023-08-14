@@ -1,14 +1,12 @@
 package com.personal.contentservice;
 
-import static com.personal.contentservice.type.UserType.USER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.personal.contentservice.domain.User;
-import com.personal.contentservice.dto.SignUpDto;
-import com.personal.contentservice.dto.UserUpdateDto;
+import com.personal.contentservice.dto.user.SignUpDto;
+import com.personal.contentservice.dto.user.UserUpdateDto;
 import com.personal.contentservice.exception.CustomException;
 import com.personal.contentservice.repository.UserRepository;
-import com.personal.contentservice.security.jwt.JwtService;
 import com.personal.contentservice.security.principal.PrincipalDetails;
 import com.personal.contentservice.service.impl.UserServiceImpl;
 import jakarta.transaction.Transactional;
@@ -16,14 +14,12 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 @SpringBootTest
 @Transactional
