@@ -2,6 +2,7 @@ package com.personal.contentservice.controller;
 
 import com.personal.contentservice.service.ContentDetailService;
 import com.personal.contentservice.service.ContentSearchService;
+import com.personal.contentservice.service.ContentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,6 +17,7 @@ public class ContentController {
 
   private final ContentSearchService contentSearchService;
   private final ContentDetailService contentDetailService;
+  private final ContentService contentService;
 
   @GetMapping("/search")
   public ResponseEntity<?> searchContents(
@@ -29,6 +31,11 @@ public class ContentController {
       @RequestParam("id") long id, @RequestParam("mediaType") String mediaType
   ) throws Exception {
     return ResponseEntity.ok().body(contentDetailService.getContentDetail(id, mediaType));
+  }
+
+  @GetMapping("/all")
+  public ResponseEntity<?> saveAllContents() {
+    return ResponseEntity.ok().body(contentService.saveAllContentInfo());
   }
 
 }
