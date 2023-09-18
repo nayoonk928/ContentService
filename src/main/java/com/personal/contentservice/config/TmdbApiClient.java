@@ -3,6 +3,7 @@ package com.personal.contentservice.config;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
+import com.personal.contentservice.dto.content.api.AllContentApiResponse;
 import com.personal.contentservice.dto.detail.api.MovieDetailApiResponse;
 import com.personal.contentservice.dto.detail.api.TvDetailApiResponse;
 import com.personal.contentservice.dto.search.api.ApiSearchResponse;
@@ -10,6 +11,8 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -80,46 +83,123 @@ public class TmdbApiClient {
     return getResponse(uri);
   }
 
-  public MovieDetailApiResponse getMovieDetail(long id) throws Exception {
-    URI uri = UriComponentsBuilder
-        .fromUriString(tmdbApiBase)
-        .path("/movie/" + id)
-        .queryParam("append_to_response", "credits")
-        .queryParam("language", "ko")
-        .build()
-        .toUri();
-    HttpResponse<String> response = getResponse(uri);
+  public MovieDetailApiResponse getMovieDetail(long id) {
+    try {
+      URI uri = UriComponentsBuilder
+          .fromUriString(tmdbApiBase)
+          .path("/movie/" + id)
+          .queryParam("append_to_response", "credits")
+          .queryParam("language", "ko")
+          .build()
+          .toUri();
+      HttpResponse<String> response = getResponse(uri);
 
-    objectMapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+      objectMapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
 
-    TypeReference<MovieDetailApiResponse> movieDetailTypeRef = new TypeReference<>() {};
-    MovieDetailApiResponse movieDetailApiResponse =
-        objectMapper.readValue(response.body(), movieDetailTypeRef);
+      TypeReference<MovieDetailApiResponse> movieDetailTypeRef = new TypeReference<>() {
+      };
+      MovieDetailApiResponse movieDetailApiResponse =
+          objectMapper.readValue(response.body(), movieDetailTypeRef);
 
-    movieDetailApiResponse.setMediaType("movie");
+      movieDetailApiResponse.setMediaType("movie");
 
-    return movieDetailApiResponse;
+      return movieDetailApiResponse;
+    } catch (Exception e) {
+      log.info("getMovieDetail() 에러 발생: " + e.getMessage(), e);
+      return null;
+    }
   }
 
-  public TvDetailApiResponse getTvDetail(long id) throws Exception {
-    URI uri = UriComponentsBuilder
-        .fromUriString(tmdbApiBase)
-        .path("/tv/" + id)
-        .queryParam("append_to_response", "credits")
-        .queryParam("language", "ko")
-        .build()
-        .toUri();
-    HttpResponse<String> response = getResponse(uri);
+  public TvDetailApiResponse getTvDetail(long id) {
+    try {
+      URI uri = UriComponentsBuilder
+          .fromUriString(tmdbApiBase)
+          .path("/tv/" + id)
+          .queryParam("append_to_response", "credits")
+          .queryParam("language", "ko")
+          .build()
+          .toUri();
+      HttpResponse<String> response = getResponse(uri);
 
-    objectMapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+      objectMapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
 
-    TypeReference<TvDetailApiResponse> tvDetailTypeRef = new TypeReference<>() {};
-    TvDetailApiResponse tvDetailApiResponse =
-        objectMapper.readValue(response.body(), tvDetailTypeRef);
+      TypeReference<TvDetailApiResponse> tvDetailTypeRef = new TypeReference<>() {
+      };
+      TvDetailApiResponse tvDetailApiResponse =
+          objectMapper.readValue(response.body(), tvDetailTypeRef);
 
-    tvDetailApiResponse.setMediaType("tv");
+      tvDetailApiResponse.setMediaType("tv");
 
-    return tvDetailApiResponse;
+      return tvDetailApiResponse;
+    } catch (Exception e) {
+      log.info("getTvDetail() 에러 발생: " + e.getMessage(), e);
+      return null;
+    }
+  }
+
+  public AllContentApiResponse getAllMovieInfo(
+      int page, String primaryReleaseDateGte, String primaryReleaseDateLte
+  ) {
+    try {
+      URI uri = UriComponentsBuilder
+          .fromUriString(tmdbApiBase)
+          .path("/discover/movie")
+          .queryParam("include_adult", "false")
+          .queryParam("include_video", "false")
+          .queryParam("language", "ko")
+          .queryParam("page", page)
+          .queryParam("region", "KR")
+          .queryParam("primary_release_date.gte", primaryReleaseDateGte)
+          .queryParam("primary_release_date.lte", primaryReleaseDateLte)
+          .queryParam("with_watch_providers", "97")
+          .build()
+          .toUri();
+      HttpResponse<String> response = getResponse(uri);
+      objectMapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+
+      TypeReference<AllContentApiResponse> allMovieResponseTypeRef = new TypeReference<>() {
+      };
+      AllContentApiResponse allMovieApiResponse =
+          objectMapper.readValue(response.body(), allMovieResponseTypeRef);
+
+      return allMovieApiResponse;
+    } catch (Exception e) {
+      log.info("getAllMovieInfo() 에러 발생: " + e.getMessage(), e);
+      return null;
+    }
+  }
+
+  public AllContentApiResponse getAllTvInfo(
+      int page, String firstAirDateGte, String firstAirDateLte
+  ) {
+    try {
+      URI uri = UriComponentsBuilder
+          .fromUriString(tmdbApiBase)
+          .path("/discover/tv")
+          .queryParam("include_adult", "false")
+          .queryParam("include_null_first_air_dates", "false")
+          .queryParam("language", "ko")
+          .queryParam("page", page)
+          .queryParam("watch_region", "KR")
+          .queryParam("first_air_date.gte", firstAirDateGte)
+          .queryParam("first_air_date.lte", firstAirDateLte)
+          .queryParam("with_watch_providers", "97")
+          .build()
+          .toUri();
+      HttpResponse<String> response = getResponse(uri);
+
+      objectMapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+
+      TypeReference<AllContentApiResponse> allTvApiResponseTypeRef = new TypeReference<>() {
+      };
+      AllContentApiResponse allTvApiResponse =
+          objectMapper.readValue(response.body(), allTvApiResponseTypeRef);
+
+      return allTvApiResponse;
+    } catch (Exception e) {
+      log.info("getAllTvInfo() 에러 발생: " + e.getMessage(), e);
+      return null;
+    }
   }
 
 }

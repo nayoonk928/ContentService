@@ -21,7 +21,6 @@ public class GenreListConverter implements AttributeConverter<GenreDto, String> 
   @Override
   public String convertToDatabaseColumn(GenreDto genreList) {
     try {
-      log.info("List<GenreDto> to JSON start");
       return objectMapper.writeValueAsString(genreList);
     } catch (JsonProcessingException e) {
       throw new IllegalArgumentException("Error genre list to JSON", e);
@@ -32,8 +31,6 @@ public class GenreListConverter implements AttributeConverter<GenreDto, String> 
   public GenreDto convertToEntityAttribute(String json) {
     TypeReference<GenreDto> typeReference = new TypeReference<GenreDto>() {};
     try {
-      log.info("JSON to List<GenreDto> start");
-      log.info("dbGenres : " + json);
       return objectMapper.readValue(json, typeReference);
     } catch (IOException e) {
       throw new IllegalArgumentException("Error JSON to genre list", e);

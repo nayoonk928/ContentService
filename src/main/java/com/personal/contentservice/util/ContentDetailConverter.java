@@ -17,7 +17,6 @@ public class ContentDetailConverter implements AttributeConverter<ContentDetailD
   @Override
   public String convertToDatabaseColumn(ContentDetailDto attribute) {
     try {
-      log.info("ContentDetailDto to JSON start");
       String json =  objectMapper.writeValueAsString(attribute);
       return json;
     } catch (JsonProcessingException e) {
@@ -29,7 +28,6 @@ public class ContentDetailConverter implements AttributeConverter<ContentDetailD
   public ContentDetailDto convertToEntityAttribute(String dbData) {
     TypeReference<ContentDetailDto> typeReference = new TypeReference<ContentDetailDto>() {};
     try {
-      log.info("JSON to ContentDetailDto start");
       return objectMapper.readValue(dbData, typeReference);
     } catch (JsonProcessingException e) {
       throw new RuntimeException("Error JSON to content detail", e);
