@@ -34,8 +34,8 @@ public class ContentController {
   }
 
   @GetMapping("/all")
-  public ResponseEntity<?> saveAllContents() {
-    return ResponseEntity.ok().body(contentService.saveAllContentInfo());
+  public ResponseEntity<?> saveContentsInfo() {
+    return ResponseEntity.ok().body(contentService.saveContentInfo());
   }
 
 }

@@ -20,11 +20,9 @@ import com.personal.contentservice.dto.detail.api.MovieDetailApiResponse;
 import com.personal.contentservice.dto.detail.api.TvDetailApiResponse;
 import com.personal.contentservice.repository.ContentRepository;
 import com.personal.contentservice.service.ContentService;
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -45,7 +43,7 @@ public class ContentServiceImpl implements ContentService {
 
   @Override
   @Transactional
-  public String saveAllContentInfo() {
+  public String saveContentInfo() {
     try {
       // 병렬 처리를 위한 스레드 풀 생성
       int movieThreads = 15;
@@ -55,23 +53,21 @@ public class ContentServiceImpl implements ContentService {
       ExecutorService tvExecutorService = Executors.newFixedThreadPool(tvThreads);
 
       // 날짜 범위 설정
-      Date currentDate = new Date();
-      SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+      LocalDate now = LocalDate.now();
+      DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
       // 10년 단위로 요청 범위 설정
-      Date startDate = dateFormat.parse("1900-01-01");
+      LocalDate startDate = LocalDate.parse("1900-01-01", formatter);
 
       // Movie 정보 가져오기
-      for (Date i = startDate; i.getTime() < currentDate.getTime(); ) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(i);
-        String startDateStr = dateFormat.format(calendar.getTime());
+      for (LocalDate i = startDate; i.isBefore(now); ) {
+        String startDateStr = i.format(formatter);
 
-        calendar.add(Calendar.YEAR, 10);
-        if (calendar.getTime().after(currentDate)) {
-          calendar.setTime(currentDate);
+        LocalDate endDate = i.plusYears(10);
+        if (endDate.isAfter(now)) {
+          endDate = now;
         }
-        String endDateStr = dateFormat.format(calendar.getTime());
+        String endDateStr = endDate.format(formatter);
 
         for (int j = 1; j <= movieThreads; j++) {
           final int threadId = j;
@@ -84,52 +80,61 @@ public class ContentServiceImpl implements ContentService {
               if (movieResponse.getResults() != null) {
                 for (ContentResponse movie : movieResponse.getResults()) {
                   MovieDetailApiResponse apiResponse = tmdbApiClient.getMovieDetail(movie.getId());
-                  ContentDetailDto contentDetailDto = convertApiResponseToMovieDto(apiResponse);
-                  saveContentInfo(contentDetailDto, movie, "movie");
+                  Content existingContent = contentRepository.findByContentKey_IdAndContentKey_MediaType(movie.getId(), "movie");
+                  if (existingContent == null) {
+                    ContentDetailDto contentDetailDto = convertApiResponseToMovieDto(apiResponse);
+                    saveContentInfo(contentDetailDto, movie, "movie");
+                  }
                 }
               }
 
               moviePage += movieThreads;
-              if (movieResponse.getTotalPages() < moviePage) break;
+              if (movieResponse.getTotalPages() < moviePage) {
+                break;
+              }
             }
           });
         }
-        i = calendar.getTime();
+        i = i.plusYears(10);
       }
 
       // TV 정보 가져오기
-      for (Date i = startDate; i.getTime() < currentDate.getTime(); ) {
-        Calendar calendar = Calendar.getInstance();
-        calendar.setTime(i);
-        String startDateStr = dateFormat.format(calendar.getTime());
+      for (LocalDate i = startDate; i.isBefore(now); ) {
+        String startDateStr = i.format(formatter);
 
-        calendar.add(Calendar.YEAR, 10);
-        if (calendar.getTime().after(currentDate)) {
-          calendar.setTime(currentDate);
+        LocalDate endDate = i.plusYears(10);
+        if (endDate.isAfter(now)) {
+          endDate = now;
         }
-        String endDateStr = dateFormat.format(calendar.getTime());
+        String endDateStr = endDate.format(formatter);
+
         for (int j = 1; j <= tvThreads; j++) {
           final int threadId = j;
           tvExecutorService.submit(() -> {
             int tvPage = threadId;
             boolean tvTotalPage = true;
             while (tvTotalPage) {
-              AllContentApiResponse tvResponse = tmdbApiClient.getAllTvInfo(tvPage, startDateStr, endDateStr);
+              AllContentApiResponse tvResponse = tmdbApiClient.getAllTvInfo(tvPage, startDateStr,
+                  endDateStr);
               if (tvResponse.getResults() != null) {
                 for (ContentResponse tv : tvResponse.getResults()) {
                   TvDetailApiResponse apiResponse = tmdbApiClient.getTvDetail(tv.getId());
-                  ContentDetailDto contentDetailDto = convertApiResponseToTvDto(apiResponse);
-                  saveContentInfo(contentDetailDto, tv, "tv");
+                  Content existingContent = contentRepository.findByContentKey_IdAndContentKey_MediaType(tv.getId(), "tv");
+                  if (existingContent == null) {
+                    ContentDetailDto contentDetailDto = convertApiResponseToTvDto(apiResponse);
+                    saveContentInfo(contentDetailDto, tv, "tv");
+                  }
                 }
               }
 
               tvPage += tvThreads;
-              if (tvResponse.getTotalPages() < tvPage)
+              if (tvResponse.getTotalPages() < tvPage) {
                 tvTotalPage = false;
+              }
             }
           });
         }
-        i = calendar.getTime();
+        i = i.plusYears(10);
       }
 
       // 모든 작업이 완료될 때까지 대기
@@ -138,14 +143,15 @@ public class ContentServiceImpl implements ContentService {
       movieExecutorService.awaitTermination(5, TimeUnit.MINUTES);
       tvExecutorService.awaitTermination(5, TimeUnit.MINUTES);
 
-      return "db에 성공적으로 저장되었습니다.";
+      return "1900-01-01~ " + now + "의 데이터가 db에 성공적으로 저장되었습니다.";
     } catch (Exception e) {
-      log.info("saveAllContentInfo() 에러 발생 : " + e.getMessage(), e);
+      log.info("saveContentInfo() 에러 발생 : " + e.getMessage(), e);
       return "에러 발생";
     }
   }
 
-  private void saveContentInfo(ContentDetailDto contentDetailDto, ContentResponse response, String mediaType) {
+  private void saveContentInfo(ContentDetailDto contentDetailDto, ContentResponse response,
+      String mediaType) {
     if (contentDetailDto != null) {
       Content content = new Content();
       content.setContentKey(new ContentKey());
@@ -262,7 +268,7 @@ public class ContentServiceImpl implements ContentService {
     return dto;
   }
 
-  private int parseDate (String date) {
+  private int parseDate(String date) {
     if (date != null) {
       try {
         return LocalDate.parse(date).getYear();
