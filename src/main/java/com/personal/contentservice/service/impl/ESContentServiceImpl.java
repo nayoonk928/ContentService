@@ -1,14 +1,9 @@
 package com.personal.contentservice.service.impl;
 
+import com.personal.contentservice.ContentServiceApplication;
 import com.personal.contentservice.config.TmdbApiClient;
-import com.personal.contentservice.domain.Content;
-import com.personal.contentservice.domain.ContentKey;
+import com.personal.contentservice.document.Content;
 import com.personal.contentservice.domain.Genre;
-import com.personal.contentservice.domain.Review;
-import com.personal.contentservice.domain.User;
-import com.personal.contentservice.dto.ContentDto;
-import com.personal.contentservice.dto.ReviewDto;
-import com.personal.contentservice.dto.UserDto;
 import com.personal.contentservice.dto.content.api.AllContentApiResponse;
 import com.personal.contentservice.dto.content.api.ContentResponse;
 import com.personal.contentservice.dto.detail.CastDto;
@@ -18,7 +13,7 @@ import com.personal.contentservice.dto.detail.GenreDto;
 import com.personal.contentservice.dto.detail.ProductionCountryDto;
 import com.personal.contentservice.dto.detail.api.MovieDetailApiResponse;
 import com.personal.contentservice.dto.detail.api.TvDetailApiResponse;
-import com.personal.contentservice.repository.ContentRepository;
+import com.personal.contentservice.repository.ESContentRepository;
 import com.personal.contentservice.service.ContentService;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -30,21 +25,26 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class ContentServiceImpl implements ContentService {
+public class ESContentServiceImpl implements ContentService {
 
   private final TmdbApiClient tmdbApiClient;
-  private final ContentRepository contentRepository;
+  private final ESContentRepository ESContentRepository;
+
+  private static final Logger logger = LoggerFactory.getLogger(ContentServiceApplication.class);
 
   @Override
   @Transactional
-  public String saveContentInfo() {
+  public void saveAllContentsInfo() {
     try {
+      logger.info("started to save all content info");
       // 병렬 처리를 위한 스레드 풀 생성
       int movieThreads = 15;
       ExecutorService movieExecutorService = Executors.newFixedThreadPool(movieThreads);
@@ -57,11 +57,12 @@ public class ContentServiceImpl implements ContentService {
       DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
       // 10년 단위로 요청 범위 설정
-      LocalDate startDate = LocalDate.parse("1900-01-01", formatter);
+      LocalDate startDate = LocalDate.parse("1920-01-01", formatter);
 
       // Movie 정보 가져오기
       for (LocalDate i = startDate; i.isBefore(now); ) {
         String startDateStr = i.format(formatter);
+        log.info("movie startDate: " +startDateStr);
 
         LocalDate endDate = i.plusYears(10);
         if (endDate.isAfter(now)) {
@@ -80,8 +81,9 @@ public class ContentServiceImpl implements ContentService {
               if (movieResponse.getResults() != null) {
                 for (ContentResponse movie : movieResponse.getResults()) {
                   MovieDetailApiResponse apiResponse = tmdbApiClient.getMovieDetail(movie.getId());
-                  Content existingContent = contentRepository.findByContentKey_IdAndContentKey_MediaType(movie.getId(), "movie");
-                  if (existingContent == null) {
+                  boolean contentExists = ESContentRepository
+                      .existsByContentIdAndMediaType(movie.getId(), "movie");
+                  if (!contentExists) {
                     ContentDetailDto contentDetailDto = convertApiResponseToMovieDto(apiResponse);
                     saveContentInfo(contentDetailDto, movie, "movie");
                   }
@@ -101,7 +103,7 @@ public class ContentServiceImpl implements ContentService {
       // TV 정보 가져오기
       for (LocalDate i = startDate; i.isBefore(now); ) {
         String startDateStr = i.format(formatter);
-
+        log.info("tv startDate: " +startDateStr);
         LocalDate endDate = i.plusYears(10);
         if (endDate.isAfter(now)) {
           endDate = now;
@@ -119,8 +121,9 @@ public class ContentServiceImpl implements ContentService {
               if (tvResponse.getResults() != null) {
                 for (ContentResponse tv : tvResponse.getResults()) {
                   TvDetailApiResponse apiResponse = tmdbApiClient.getTvDetail(tv.getId());
-                  Content existingContent = contentRepository.findByContentKey_IdAndContentKey_MediaType(tv.getId(), "tv");
-                  if (existingContent == null) {
+                  boolean contentExists = ESContentRepository
+                      .existsByContentIdAndMediaType(tv.getId(), "tv");
+                  if (!contentExists) {
                     ContentDetailDto contentDetailDto = convertApiResponseToTvDto(apiResponse);
                     saveContentInfo(contentDetailDto, tv, "tv");
                   }
@@ -143,63 +146,33 @@ public class ContentServiceImpl implements ContentService {
       movieExecutorService.awaitTermination(5, TimeUnit.MINUTES);
       tvExecutorService.awaitTermination(5, TimeUnit.MINUTES);
 
-      return "1900-01-01~ " + now + "의 데이터가 db에 성공적으로 저장되었습니다.";
+      logger.info("1920-01-01~" + now + "의 데이터가 Elasticsearch에 성공적으로 저장되었습니다.");
     } catch (Exception e) {
-      log.info("saveContentInfo() 에러 발생 : " + e.getMessage(), e);
-      return "에러 발생";
+      logger.error("saveAllContentsInfo() 에러 발생 : " + e.getMessage(), e);
     }
   }
 
   private void saveContentInfo(ContentDetailDto contentDetailDto, ContentResponse response,
       String mediaType) {
-    if (contentDetailDto != null) {
-      Content content = new Content();
-      content.setContentKey(new ContentKey());
-      content.getContentKey().setIdAndMediaType(response.getId(), mediaType);
-      content.setTitle(contentDetailDto.getTitle());
-      content.setGenres(contentDetailDto.getGenres());
-      content.setContentYear(contentDetailDto.getContentYear());
-      content.setDetails(contentDetailDto);
 
-      contentRepository.save(content);
+    if (contentDetailDto == null || contentDetailDto.getContentYear() == 0
+        || contentDetailDto.getGenres().getNames().isEmpty()) {
+      return;
     }
-  }
 
-  private ContentDto convertContentToDto(Content content) {
-    List<ReviewDto> reviewDtos = content.getReviews().stream()
-        .map(this::convertReviewToDto)
-        .collect(Collectors.toList());
+    if ("movie".equals(mediaType) && contentDetailDto.getRuntime() == 0) {
+      return;
+    }
 
-    return ContentDto.builder()
-        .id(content.getContentKey().getId())
-        .mediaType(content.getContentKey().getMediaType())
-        .title(content.getTitle())
-        .contentYear(content.getContentYear())
-        .averageRating(content.getAverageRating())
-        .genres(content.getGenres())
-        .details(content.getDetails())
-        .reviews(reviewDtos)
-        .build();
-  }
+    Content content = new Content();
+    content.setContentId(response.getId());
+    content.setMediaType(mediaType);
+    content.setTitle(contentDetailDto.getTitle());
+    content.setGenres(contentDetailDto.getGenres());
+    content.setContentYear(contentDetailDto.getContentYear());
+    content.setDetails(contentDetailDto);
 
-  private ReviewDto convertReviewToDto(Review review) {
-    UserDto userDto = convertUserToDto(review.getUser());
-
-    return ReviewDto.builder()
-        .id(review.getId())
-        .user(userDto)
-        .comment(review.getComment())
-        .rating(review.getRating())
-        .likeCount(review.getLikeCount())
-        .dislikeCount(review.getDislikeCount())
-        .build();
-  }
-
-  private UserDto convertUserToDto(User user) {
-    return UserDto.builder()
-        .id(user.getId())
-        .nickname(user.getNickname())
-        .build();
+    ESContentRepository.save(content);
   }
 
   private ContentDetailDto convertApiResponseToMovieDto(MovieDetailApiResponse response) {
@@ -227,7 +200,7 @@ public class ContentServiceImpl implements ContentService {
     dto.setTitle(response.getTitle());
     dto.setGenres(extractGenreNames(response.getGenres()));
 
-    if (releaseDate != null) {
+    if (releaseDate != null && !releaseDate.isEmpty()) {
       dto.setContentYear(parseDate(releaseDate));
     }
 
@@ -261,7 +234,7 @@ public class ContentServiceImpl implements ContentService {
     dto.setTitle(response.getName());
     dto.setGenres(extractGenreNames(response.getGenres()));
 
-    if (firstAirDate != null) {
+    if (firstAirDate != null && !firstAirDate.isEmpty()) {
       dto.setContentYear(parseDate(firstAirDate));
     }
 
@@ -269,7 +242,7 @@ public class ContentServiceImpl implements ContentService {
   }
 
   private int parseDate(String date) {
-    if (date != null) {
+    if (date != null && !date.isEmpty()) {
       try {
         return LocalDate.parse(date).getYear();
       } catch (DateTimeParseException e) {

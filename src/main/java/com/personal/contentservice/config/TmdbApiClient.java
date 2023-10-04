@@ -11,8 +11,6 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -138,7 +136,7 @@ public class TmdbApiClient {
   }
 
   public AllContentApiResponse getAllMovieInfo(
-      int page, String primaryReleaseDateGte, String primaryReleaseDateLte
+      int page, String releaseDateGte, String releaseDateLte
   ) {
     try {
       URI uri = UriComponentsBuilder
@@ -149,8 +147,8 @@ public class TmdbApiClient {
           .queryParam("language", "ko")
           .queryParam("page", page)
           .queryParam("region", "KR")
-          .queryParam("primary_release_date.gte", primaryReleaseDateGte)
-          .queryParam("primary_release_date.lte", primaryReleaseDateLte)
+          .queryParam("release_date.gte", releaseDateGte)
+          .queryParam("release_date.lte", releaseDateLte)
           .queryParam("with_watch_providers", "97")
           .build()
           .toUri();
