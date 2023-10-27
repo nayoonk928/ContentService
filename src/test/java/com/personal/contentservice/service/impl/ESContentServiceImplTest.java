@@ -1,38 +1,93 @@
 package com.personal.contentservice.service.impl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
+import com.personal.contentservice.config.TmdbApiClient;
+import com.personal.contentservice.dto.content.api.AllContentApiResponse;
+import com.personal.contentservice.dto.content.api.ContentResponse;
+import com.personal.contentservice.repository.ESContentRepository;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.http.ResponseEntity;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class ESContentServiceImplTest {
 
-  @LocalServerPort
-  private int port;
+  @Mock
+  private TmdbApiClient tmdbApiClient;
 
-  @Autowired
-  private TestRestTemplate restTemplate;
+  @Mock
+  private ESContentRepository contentRepository;
 
-  @Test
-  void testSaveAllContentInfo_Success() {
-    ResponseEntity<String> response = restTemplate.getForEntity(
-        "http://localhost:" + port + "/contents/save-all", String.class);
+  private ESContentServiceImpl contentService;
 
-    assertEquals(200, response.getStatusCodeValue());
+  List<ContentResponse> movieResults = new ArrayList<>();
+  List<ContentResponse> tvResults = new ArrayList<>();
+
+  LocalDate now = LocalDate.now();
+
+  @BeforeEach
+  void setUp() {
+    MockitoAnnotations.initMocks(this);
+    contentService = new ESContentServiceImpl(tmdbApiClient, contentRepository);
   }
 
   @Test
-  void testSaveDailyContentInfo_Success() {
-    ResponseEntity<String> response = restTemplate.getForEntity(
-        "http://localhost:" + port + "/contents/save-daily", String.class);
+  void testSaveAllContentsInfo() {
+    // 모의 API 응답
+    AllContentApiResponse movieApiResponse = new AllContentApiResponse();
+    movieApiResponse.setResults(movieResults); // Movie 정보 설정
 
-    assertEquals(200, response.getStatusCodeValue());
-    assertEquals("오늘의 컨텐츠가 성공적으로 저장되었습니다", response.getBody());
+    AllContentApiResponse tvApiResponse = new AllContentApiResponse();
+    tvApiResponse.setResults(tvResults); // TV 정보 설정
+
+    when(tmdbApiClient.getAllMovieInfo(anyInt(), anyString(), anyString()))
+        .thenReturn(movieApiResponse);
+
+    when(tmdbApiClient.getAllTvInfo(anyInt(), anyString(), anyString()))
+        .thenReturn(tvApiResponse);
+
+    // existsByContentIdAndMediaType 메서드가 항상 false 반환하도록 설정
+    when(contentRepository.existsByContentIdAndMediaType(anyLong(), anyString()))
+        .thenReturn(false);
+
+    // 테스트 실행
+    String result = contentService.saveAllContentsInfo();
+
+    assertEquals("1920-01-01~"+ now +"의 데이터가 Elasticsearch에 성공적으로 저장되었습니다.", result);
+  }
+
+  @Test
+  void testSaveDailyContentsInfo() {
+    // 모의 API 응답
+    AllContentApiResponse movieApiResponse = new AllContentApiResponse();
+    movieApiResponse.setResults(movieResults); // Movie 정보 설정
+
+    AllContentApiResponse tvApiResponse = new AllContentApiResponse();
+    tvApiResponse.setResults(tvResults); // TV 정보 설정
+
+    when(tmdbApiClient.getAllMovieInfo(anyInt(), anyString(), anyString()))
+        .thenReturn(movieApiResponse);
+
+    when(tmdbApiClient.getAllTvInfo(anyInt(), anyString(), anyString()))
+        .thenReturn(tvApiResponse);
+
+    // existsByContentIdAndMediaType 메서드가 항상 false 반환하도록 설정
+    when(contentRepository.existsByContentIdAndMediaType(anyLong(), anyString()))
+        .thenReturn(false);
+
+    // 테스트 실행
+    String result = contentService.saveDailyContentsInfo();
+
+    // 결과 메시지 확인
+    assertEquals(now + "의 데이터가 Elasticsearch에 성공적으로 저장되었습니다.", result);
   }
 
 }

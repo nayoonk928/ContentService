@@ -8,6 +8,8 @@ import com.personal.contentservice.dto.content.api.AllContentApiResponse;
 import com.personal.contentservice.dto.content.api.ContentResponse;
 import com.personal.contentservice.dto.detail.CastDto;
 import com.personal.contentservice.dto.detail.ContentDetailDto;
+import com.personal.contentservice.dto.detail.ContentDtoContainer;
+import com.personal.contentservice.dto.detail.ContentSummaryDto;
 import com.personal.contentservice.dto.detail.CrewDto;
 import com.personal.contentservice.dto.detail.GenreDto;
 import com.personal.contentservice.dto.detail.ProductionCountryDto;
@@ -28,7 +30,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -41,12 +42,11 @@ public class ESContentServiceImpl implements ContentService {
   private static final Logger logger = LoggerFactory.getLogger(ContentServiceApplication.class);
 
   @Override
-  @Transactional
-  public void saveAllContentsInfo() {
+  public String saveAllContentsInfo() {
     try {
-      logger.info("started to save all content info");
+      logger.info("started to save all contents info");
       // 병렬 처리를 위한 스레드 풀 생성
-      int movieThreads = 15;
+      int movieThreads = 10;
       ExecutorService movieExecutorService = Executors.newFixedThreadPool(movieThreads);
 
       int tvThreads = 5;
@@ -62,37 +62,37 @@ public class ESContentServiceImpl implements ContentService {
       // Movie 정보 가져오기
       for (LocalDate i = startDate; i.isBefore(now); ) {
         String startDateStr = i.format(formatter);
-        log.info("movie startDate: " +startDateStr);
+        LocalDate endDate = i.plusYears(10).minusDays(1);
 
-        LocalDate endDate = i.plusYears(10);
         if (endDate.isAfter(now)) {
           endDate = now;
         }
+
         String endDateStr = endDate.format(formatter);
 
         for (int j = 1; j <= movieThreads; j++) {
           final int threadId = j;
           movieExecutorService.submit(() -> {
             int moviePage = threadId;
-
-            while (true) {
+            boolean movieTotalPage = true;
+            while (movieTotalPage) {
               AllContentApiResponse movieResponse =
                   tmdbApiClient.getAllMovieInfo(moviePage, startDateStr, endDateStr);
-              if (movieResponse.getResults() != null) {
+              if (!movieResponse.getResults().isEmpty()) {
                 for (ContentResponse movie : movieResponse.getResults()) {
                   MovieDetailApiResponse apiResponse = tmdbApiClient.getMovieDetail(movie.getId());
                   boolean contentExists = ESContentRepository
                       .existsByContentIdAndMediaType(movie.getId(), "movie");
                   if (!contentExists) {
-                    ContentDetailDto contentDetailDto = convertApiResponseToMovieDto(apiResponse);
-                    saveContentInfo(contentDetailDto, movie, "movie");
+                    ContentDtoContainer container = convertApiResponseToMovieDto(apiResponse);
+                    saveContentInfo(container, movie, "movie");
                   }
                 }
               }
 
               moviePage += movieThreads;
               if (movieResponse.getTotalPages() < moviePage) {
-                break;
+                movieTotalPage = false;
               }
             }
           });
@@ -103,11 +103,12 @@ public class ESContentServiceImpl implements ContentService {
       // TV 정보 가져오기
       for (LocalDate i = startDate; i.isBefore(now); ) {
         String startDateStr = i.format(formatter);
-        log.info("tv startDate: " +startDateStr);
-        LocalDate endDate = i.plusYears(10);
+        LocalDate endDate = i.plusYears(10).minusDays(1);
+
         if (endDate.isAfter(now)) {
           endDate = now;
         }
+
         String endDateStr = endDate.format(formatter);
 
         for (int j = 1; j <= tvThreads; j++) {
@@ -118,14 +119,14 @@ public class ESContentServiceImpl implements ContentService {
             while (tvTotalPage) {
               AllContentApiResponse tvResponse = tmdbApiClient.getAllTvInfo(tvPage, startDateStr,
                   endDateStr);
-              if (tvResponse.getResults() != null) {
+              if (!tvResponse.getResults().isEmpty()) {
                 for (ContentResponse tv : tvResponse.getResults()) {
                   TvDetailApiResponse apiResponse = tmdbApiClient.getTvDetail(tv.getId());
                   boolean contentExists = ESContentRepository
                       .existsByContentIdAndMediaType(tv.getId(), "tv");
                   if (!contentExists) {
-                    ContentDetailDto contentDetailDto = convertApiResponseToTvDto(apiResponse);
-                    saveContentInfo(contentDetailDto, tv, "tv");
+                    ContentDtoContainer container = convertApiResponseToTvDto(apiResponse);
+                    saveContentInfo(container, tv, "tv");
                   }
                 }
               }
@@ -147,35 +148,111 @@ public class ESContentServiceImpl implements ContentService {
       tvExecutorService.awaitTermination(5, TimeUnit.MINUTES);
 
       logger.info("1920-01-01~" + now + "의 데이터가 Elasticsearch에 성공적으로 저장되었습니다.");
+      return "1920-01-01~" + now + "의 데이터가 Elasticsearch에 성공적으로 저장되었습니다.";
     } catch (Exception e) {
       logger.error("saveAllContentsInfo() 에러 발생 : " + e.getMessage(), e);
+      return "saveAllContentsInfo() 에러 발생 : " + e.getMessage();
     }
   }
 
-  private void saveContentInfo(ContentDetailDto contentDetailDto, ContentResponse response,
+  public String saveDailyContentsInfo() {
+    long totalContentCount = 0;
+    long movieCount = 0;
+    long tvCount = 0;
+
+    try {
+      logger.info("started to save daily contents info");
+
+      LocalDate now = LocalDate.now();
+      DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+      String nowStr = now.format(formatter);
+
+      // Movie 정보 가져오기
+      int moviePage = 1;
+      boolean hasResults = true;
+      while (hasResults) {
+        AllContentApiResponse movieResponse = tmdbApiClient.getAllMovieInfo(moviePage, nowStr,
+            nowStr);
+        movieCount = movieResponse.getTotalResults();
+        if (!movieResponse.getResults().isEmpty()) {
+          for (ContentResponse movie : movieResponse.getResults()) {
+            MovieDetailApiResponse apiResponse = tmdbApiClient.getMovieDetail(movie.getId());
+            boolean contentExists = ESContentRepository
+                .existsByContentIdAndMediaType(movie.getId(), "movie");
+            if (!contentExists) {
+              ContentDtoContainer container = convertApiResponseToMovieDto(apiResponse);
+              saveContentInfo(container, movie, "movie");
+              totalContentCount++;
+            }
+          }
+          moviePage++;
+        } else {
+          hasResults = false;
+        }
+      }
+
+      // TV 정보 가져오기
+      int tvPage = 1;
+      hasResults = true;
+      while (hasResults) {
+        AllContentApiResponse tvResponse = tmdbApiClient.getAllTvInfo(tvPage, nowStr, nowStr);
+        tvCount = tvResponse.getTotalResults();
+        if (!tvResponse.getResults().isEmpty()) {
+          for (ContentResponse tv : tvResponse.getResults()) {
+            TvDetailApiResponse apiResponse = tmdbApiClient.getTvDetail(tv.getId());
+            boolean contentExists = ESContentRepository
+                .existsByContentIdAndMediaType(tv.getId(), "tv");
+            if (!contentExists) {
+              ContentDtoContainer container = convertApiResponseToTvDto(apiResponse);
+              saveContentInfo(container, tv, "tv");
+              totalContentCount++;
+            }
+          }
+        } else {
+          hasResults = false;
+        }
+      }
+
+      if (totalContentCount != (movieCount + tvCount)) {
+        logger.warn("총 컨텐츠 개수와 저장된 컨텐츠 개수가 다릅니다");
+        return "총 컨텐츠 개수과 저장된 컨텐츠 개수가 다릅니다.";
+      }
+
+      logger.info(now + "의 데이터가 Elasticsearch에 성공적으로 저장되었습니다.");
+      return now + "의 데이터가 Elasticsearch에 성공적으로 저장되었습니다.";
+    } catch (Exception e) {
+      logger.error("saveDailyContentsInfo() 에러 발생 : " + e.getMessage(), e);
+      return "saveDailyContentsInfo() 에러 발생 : " + e.getMessage();
+    }
+  }
+
+  private void saveContentInfo(ContentDtoContainer container, ContentResponse response,
       String mediaType) {
 
-    if (contentDetailDto == null || contentDetailDto.getContentYear() == 0
-        || contentDetailDto.getGenres().getNames().isEmpty()) {
+    ContentSummaryDto summaryDto = container.getSummaryDto();
+    ContentDetailDto detailDto = container.getDetailDto();
+
+    if (container == null || summaryDto.getContentYear() == 0
+        || summaryDto.getGenres().getNames().isEmpty()) {
       return;
     }
 
-    if ("movie".equals(mediaType) && contentDetailDto.getRuntime() == 0) {
+    if ("movie".equals(mediaType) && container.getDetailDto().getRuntime() == 0) {
       return;
     }
 
     Content content = new Content();
     content.setContentId(response.getId());
     content.setMediaType(mediaType);
-    content.setTitle(contentDetailDto.getTitle());
-    content.setGenres(contentDetailDto.getGenres());
-    content.setContentYear(contentDetailDto.getContentYear());
-    content.setDetails(contentDetailDto);
+    content.setTitle(summaryDto.getTitle());
+    content.setGenres(summaryDto.getGenres());
+    content.setContentYear(summaryDto.getContentYear());
+    content.setDetails(detailDto);
 
     ESContentRepository.save(content);
   }
 
-  private ContentDetailDto convertApiResponseToMovieDto(MovieDetailApiResponse response) {
+  private ContentDtoContainer convertApiResponseToMovieDto(MovieDetailApiResponse response) {
     List<String> productionCountries = response.getProductionCountries().stream()
         .map(ProductionCountryDto::getName)
         .collect(Collectors.toList());
@@ -185,29 +262,36 @@ public class ESContentServiceImpl implements ContentService {
 
     String releaseDate = response.getReleaseDate();
 
-    ContentDetailDto dto = ContentDetailDto.builder()
-        .originalTitle(response.getOriginalTitle())
-        .originalLanguage(response.getOriginalLanguage())
-        .tagline(response.getTagline())
-        .overview(response.getOverview())
-        .productionCountries(productionCountries)
-        .releaseDate(releaseDate)
-        .runtime(response.getRuntime())
-        .actorsInfo(actorsInfo)
-        .directorsName(directorsName)
-        .build();
-
-    dto.setTitle(response.getTitle());
-    dto.setGenres(extractGenreNames(response.getGenres()));
-
     if (releaseDate != null && !releaseDate.isEmpty()) {
-      dto.setContentYear(parseDate(releaseDate));
-    }
+      ContentDetailDto contentDetailDto = ContentDetailDto.builder()
+          .originalTitle(response.getOriginalTitle())
+          .originalLanguage(response.getOriginalLanguage())
+          .releaseDate(releaseDate)
+          .tagline(response.getTagline())
+          .overview(response.getOverview())
+          .productionCountries(productionCountries)
+          .runtime(response.getRuntime())
+          .actorsInfo(actorsInfo)
+          .directorsName(directorsName)
+          .build();
 
-    return dto;
+      ContentSummaryDto contentSummaryDto = ContentSummaryDto.builder()
+          .title(response.getTitle())
+          .genres(extractGenreNames(response.getGenres()))
+          .contentYear(parseDate(releaseDate))
+          .build();
+
+      return ContentDtoContainer.builder()
+          .detailDto(contentDetailDto)
+          .summaryDto(contentSummaryDto)
+          .build();
+    } else {
+      return null;
+    }
   }
 
-  private ContentDetailDto convertApiResponseToTvDto(TvDetailApiResponse response) {
+
+  private ContentDtoContainer convertApiResponseToTvDto(TvDetailApiResponse response) {
     List<String> productionCountries = response.getProductionCountries().stream()
         .map(ProductionCountryDto::getName)
         .collect(Collectors.toList());
@@ -216,29 +300,36 @@ public class ESContentServiceImpl implements ContentService {
     List<String> directorsName = getDirectorsName(response.getCredits().getCrew());
 
     String firstAirDate = response.getFirstAirDate();
-
-    ContentDetailDto dto = ContentDetailDto.builder()
-        .originalTitle(response.getOriginalName())
-        .originalLanguage(response.getOriginalLanguage())
-        .overview(response.getOverview())
-        .firstAirDate(firstAirDate)
-        .lastAirDate(response.getLastAirDate())
-        .numberOfEpisodes(response.getNumberOfEpisodes())
-        .numberOfSeasons(response.getNumberOfSeasons())
-        .productionCountries(productionCountries)
-        .seasons(response.getSeasons())
-        .actorsInfo(actorsInfo)
-        .directorsName(directorsName)
-        .build();
-
-    dto.setTitle(response.getName());
-    dto.setGenres(extractGenreNames(response.getGenres()));
+    String lastAirDate = response.getLastAirDate();
 
     if (firstAirDate != null && !firstAirDate.isEmpty()) {
-      dto.setContentYear(parseDate(firstAirDate));
-    }
+      ContentDetailDto contentDetailDto = ContentDetailDto.builder()
+          .originalTitle(response.getOriginalName())
+          .originalLanguage(response.getOriginalLanguage())
+          .overview(response.getOverview())
+          .firstAirDate(firstAirDate)
+          .lastAirDate(lastAirDate)
+          .numberOfEpisodes(response.getNumberOfEpisodes())
+          .numberOfSeasons(response.getNumberOfSeasons())
+          .productionCountries(productionCountries)
+          .seasons(response.getSeasons())
+          .actorsInfo(actorsInfo)
+          .directorsName(directorsName)
+          .build();
 
-    return dto;
+      ContentSummaryDto contentSummaryDto = ContentSummaryDto.builder()
+          .title(response.getName())
+          .genres(extractGenreNames(response.getGenres()))
+          .contentYear(parseDate(firstAirDate))
+          .build();
+
+      return ContentDtoContainer.builder()
+          .detailDto(contentDetailDto)
+          .summaryDto(contentSummaryDto)
+          .build();
+    } else {
+      return null;
+    }
   }
 
   private int parseDate(String date) {

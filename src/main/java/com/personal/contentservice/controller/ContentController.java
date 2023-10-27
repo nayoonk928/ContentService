@@ -31,4 +31,9 @@ public class ContentController {
     esContentService.saveAllContentsInfo();
   }
 
+  @GetMapping("/save-daily")
+  public ResponseEntity<?> saveDailyContentsInfo() {
+    return ResponseEntity.ok().body(esContentService.saveDailyContentsInfo());
+  }
+
 }

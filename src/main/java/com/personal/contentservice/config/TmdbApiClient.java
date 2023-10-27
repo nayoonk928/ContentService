@@ -147,9 +147,9 @@ public class TmdbApiClient {
           .queryParam("language", "ko")
           .queryParam("page", page)
           .queryParam("region", "KR")
-          .queryParam("release_date.gte", releaseDateGte)
-          .queryParam("release_date.lte", releaseDateLte)
-          .queryParam("with_watch_providers", "97")
+          .queryParam("primary_release_date.gte", releaseDateGte)
+          .queryParam("primary_release_date.lte", releaseDateLte)
+          .queryParam("with_watch_providers", "watcha")
           .build()
           .toUri();
       HttpResponse<String> response = getResponse(uri);
@@ -181,7 +181,7 @@ public class TmdbApiClient {
           .queryParam("watch_region", "KR")
           .queryParam("first_air_date.gte", firstAirDateGte)
           .queryParam("first_air_date.lte", firstAirDateLte)
-          .queryParam("with_watch_providers", "97")
+          .queryParam("with_watch_providers", "watcha")
           .build()
           .toUri();
       HttpResponse<String> response = getResponse(uri);
