@@ -2,7 +2,6 @@ package com.personal.contentservice.service.impl;
 
 import static com.personal.contentservice.exception.ErrorCode.CONTENT_NOT_FOUND;
 import static com.personal.contentservice.exception.ErrorCode.CONTENT_NOT_IN_WISHLIST;
-import static com.personal.contentservice.exception.ErrorCode.USER_NOT_FOUND;
 
 import com.personal.contentservice.domain.Content;
 import com.personal.contentservice.domain.User;
@@ -11,10 +10,8 @@ import com.personal.contentservice.dto.wishlist.WishlistDto;
 import com.personal.contentservice.exception.CustomException;
 import com.personal.contentservice.repository.ContentRepository;
 import com.personal.contentservice.repository.WishlistRepository;
-import com.personal.contentservice.security.principal.PrincipalDetails;
 import com.personal.contentservice.service.WishlistService;
 import com.personal.contentservice.util.UserAuthenticationUtils;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;

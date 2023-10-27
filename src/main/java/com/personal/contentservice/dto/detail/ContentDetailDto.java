@@ -1,8 +1,6 @@
 package com.personal.contentservice.dto.detail;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
@@ -17,17 +15,7 @@ import lombok.Setter;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ContentDetailDto {
-
-  @JsonIgnore
-  private String title;
-
-  @JsonIgnore
-  private GenreDto genres;
-
-  @JsonIgnore
-  private int contentYear;
 
   private String originalTitle;
   private String originalLanguage;

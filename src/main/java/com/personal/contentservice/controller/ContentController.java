@@ -1,8 +1,8 @@
 package com.personal.contentservice.controller;
 
-import com.personal.contentservice.service.ContentDetailService;
 import com.personal.contentservice.service.ContentSearchService;
 import com.personal.contentservice.service.ContentService;
+import com.personal.contentservice.service.impl.ESContentServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,8 +16,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class ContentController {
 
   private final ContentSearchService contentSearchService;
-  private final ContentDetailService contentDetailService;
   private final ContentService contentService;
+  private final ESContentServiceImpl esContentService;
 
   @GetMapping("/search")
   public ResponseEntity<?> searchContents(
@@ -26,16 +26,14 @@ public class ContentController {
     return ResponseEntity.ok().body(contentSearchService.searchContents(query, page));
   }
 
-  @GetMapping("/detail")
-  public ResponseEntity<?> getContentsDetail(
-      @RequestParam("id") long id, @RequestParam("mediaType") String mediaType
-  ) throws Exception {
-    return ResponseEntity.ok().body(contentDetailService.getContentDetail(id, mediaType));
+  @GetMapping("/save-all")
+  public void saveAllContentsInfo() {
+    esContentService.saveAllContentsInfo();
   }
 
-  @GetMapping("/all")
-  public ResponseEntity<?> saveContentsInfo() {
-    return ResponseEntity.ok().body(contentService.saveContentInfo());
+  @GetMapping("/save-daily")
+  public ResponseEntity<?> saveDailyContentsInfo() {
+    return ResponseEntity.ok().body(esContentService.saveDailyContentsInfo());
   }
 
 }
